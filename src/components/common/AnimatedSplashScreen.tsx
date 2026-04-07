@@ -47,6 +47,7 @@ export function AnimatedSplashScreen({ onFinish }: AnimatedSplashScreenProps) {
   if (!isMounted) return <View style={[styles.container, { backgroundColor }]} />;
 
   const brand = "PayU";
+  const isDark = mode === 'dark';
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
@@ -67,12 +68,24 @@ export function AnimatedSplashScreen({ onFinish }: AnimatedSplashScreenProps) {
             animate={{ opacity: 1, scale: 1, translateY: 0 }}
             transition={{
               type: 'timing',
-              duration: 2000, // Very slow and premium entrance
+              duration: 2000,
               delay: 100,
             }}
             style={styles.brandContainer}
           >
-            <Text style={[styles.brandText, { color: textColor }]}>{brand}</Text>
+            <Text 
+              style={[
+                styles.brandText, 
+                { 
+                  color: textColor,
+                  textShadowColor: isDark ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.1)',
+                  textShadowOffset: { width: 0, height: 2 },
+                  textShadowRadius: 6
+                }
+              ]}
+            >
+              {brand}
+            </Text>
           </MotiView>
           
           <MotiView
@@ -81,11 +94,11 @@ export function AnimatedSplashScreen({ onFinish }: AnimatedSplashScreenProps) {
             transition={{
               type: 'timing',
               duration: 1500,
-              delay: 800, // Appears shortly after name starts
+              delay: 800,
             }}
           >
             <Text style={[styles.tagline, { color: palette[mode].textMuted }]}>
-              Send money globally with the real exchange rate
+              Save money and track your expenses
             </Text>
           </MotiView>
 
@@ -97,7 +110,17 @@ export function AnimatedSplashScreen({ onFinish }: AnimatedSplashScreenProps) {
               duration: 1200, 
               delay: 1400 
             }}
-            style={[styles.indicator, { backgroundColor: palette[mode].accentB }]}
+            style={[
+              styles.indicator, 
+              { 
+                backgroundColor: palette[mode].accentB,
+                shadowColor: palette[mode].accentA,
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.5,
+                shadowRadius: 8,
+                elevation: 4
+              }
+            ]}
           />
         </View>
       </View>
@@ -117,8 +140,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   lottie: {
-    width: width * 0.65,
-    height: width * 0.65,
+    width: width * 0.7,
+    height: width * 0.7,
   },
   textContainer: {
     marginTop: -10,
@@ -131,7 +154,7 @@ const styles = StyleSheet.create({
   brandText: {
     fontSize: 34,
     fontWeight: '900',
-    letterSpacing: 2,
+    letterSpacing: 1,
   },
   tagline: {
     fontSize: 14,
@@ -141,9 +164,9 @@ const styles = StyleSheet.create({
     opacity: 0.9,
   },
   indicator: {
-    height: 3,
-    width: 60,
-    borderRadius: 2,
-    marginTop: 20,
+    height: 4,
+    width: 50,
+    borderRadius: 3,
+    marginTop: 18,
   },
 });

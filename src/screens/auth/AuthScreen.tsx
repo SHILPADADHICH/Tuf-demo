@@ -10,6 +10,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { MotiView, AnimatePresence } from 'moti';
 
 import { SegmentControl } from '@/components/common/SegmentControl';
 import { useAppTheme } from '@/theme/ThemeProvider';
@@ -83,123 +84,181 @@ export function AuthScreen({ onContinue }: AuthScreenProps) {
   return (
     <KeyboardAvoidingView
       className="flex-1"
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior="padding"
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 100}
       style={{ backgroundColor: colors.background }}
     >
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 56, paddingBottom: 24 }}>
-        <View className="mb-7 items-center">
-          <Pressable className="absolute right-2 top-1" onPress={toggleTheme}>
+      <ScrollView 
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 60, paddingBottom: 120 }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        <MotiView
+          from={{ opacity: 0, translateY: -20 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 800 }}
+          className="mb-8 items-center"
+        >
+          <Pressable 
+            className="absolute right-0 top-0 h-10 w-10 items-center justify-center rounded-full" 
+            style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
+            onPress={toggleTheme}
+          >
             <Ionicons name={isDark ? 'sunny-outline' : 'moon-outline'} size={20} color={colors.text} />
           </Pressable>
 
-          <View
-            className="mb-4 h-14 w-14 items-center justify-center rounded-2xl"
-            style={{ backgroundColor: isDark ? '#F3F4F6' : '#111827' }}
-          >
-            <Text className="text-xl font-bold" style={{ color: isDark ? '#111827' : '#F3F4F6' }}>
-              P
-            </Text>
-          </View>
-          <Text className="text-4xl font-bold" style={{ color: colors.text }}>
+          <Text className="text-4xl font-extrabold tracking-tight" style={{ color: colors.text }}>
             Welcome to PayU
           </Text>
-          <Text className="mt-2 text-center text-base" style={{ color: colors.textMuted }}>
-            Send money globally with the real exchange rate
+          <Text className="mt-2 text-center text-base" style={{ color: colors.textMuted, maxWidth: '80%' }}>
+            Save money and track your expenses
           </Text>
-        </View>
+        </MotiView>
 
-        <LinearGradient
-          colors={isDark ? ['#15181D', '#0E1116'] : ['#FFFFFF', '#F6F7FA']}
-          className="rounded-3xl border p-5"
-          style={{ borderColor: colors.border }}
+        <MotiView
+          from={{ opacity: 0, scale: 0.95, translateY: 20 }}
+          animate={{ opacity: 1, scale: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 800, delay: 200 }}
         >
-          <Text className="text-3xl font-semibold" style={{ color: colors.text }}>
-            Get started
-          </Text>
-          <Text className="mb-4 mt-1 text-base" style={{ color: colors.textMuted }}>
-            Sign in to your account or create a new one
-          </Text>
-
-          <SegmentControl
-            options={[
-              { label: 'Sign In', value: 'signin' },
-              { label: 'Sign Up', value: 'signup' },
-            ]}
-            value={mode}
-            onChange={(value) => onSwitchMode(value as Mode)}
-          />
-
-          {mode === 'signup' && (
-            <Input
-              label="Full Name"
-              placeholder="Enter your full name"
-              value={fullName}
-              onChangeText={(text) => {
-                setFullName(text);
-                if (errors.fullName) setErrors((prev) => ({ ...prev, fullName: undefined }));
-              }}
-              error={errors.fullName}
-            />
-          )}
-
-          <Input
-            label="Email"
-            placeholder="Enter your email"
-            value={email}
-            onChangeText={(text) => {
-              setEmail(text);
-              if (errors.email) setErrors((prev) => ({ ...prev, email: undefined }));
+          <LinearGradient
+            colors={isDark ? ['#1A1D23', '#111418'] : ['#FFFFFF', '#F9FAFB']}
+            className="overflow-hidden rounded-[32px] border p-6"
+            style={{ 
+              borderColor: colors.border,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 10 },
+              shadowOpacity: isDark ? 0.3 : 0.05,
+              shadowRadius: 20,
+              elevation: 5
             }}
-            error={errors.email}
-          />
-
-          <Input
-            label="Password"
-            placeholder={mode === 'signup' ? 'Create a password' : 'Enter your password'}
-            secure
-            showSecureText={showPassword}
-            onToggleSecure={() => setShowPassword((prev) => !prev)}
-            value={password}
-            onChangeText={(text) => {
-              setPassword(text);
-              if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }));
-            }}
-            error={errors.password}
-          />
-
-          {mode === 'signup' && (
-            <Input
-              label="Confirm Password"
-              placeholder="Confirm your password"
-              secure
-              showSecureText={showConfirmPassword}
-              onToggleSecure={() => setShowConfirmPassword((prev) => !prev)}
-              value={confirmPassword}
-              onChangeText={(text) => {
-                setConfirmPassword(text);
-                if (errors.confirmPassword) setErrors((prev) => ({ ...prev, confirmPassword: undefined }));
-              }}
-              error={errors.confirmPassword}
-            />
-          )}
-
-          {mode === 'signin' && (
-            <Text className="mb-4 mt-3 text-right text-sm" style={{ color: colors.text }}>
-              Forgot password?
-            </Text>
-          )}
-
-          <Pressable
-            onPress={onSubmit}
-            disabled={!canSubmit}
-            className="rounded-xl py-3.5 active:opacity-90"
-            style={{ backgroundColor: canSubmit ? colors.primary : isDark ? '#334155' : '#CBD5E1' }}
           >
-            <Text className="text-center text-lg font-semibold" style={{ color: isDark ? '#111827' : '#FFFFFF' }}>
-              {title}
-            </Text>
-          </Pressable>
-        </LinearGradient>
+            <View className="mb-6">
+              <Text className="text-2xl font-bold" style={{ color: colors.text }}>
+                {mode === 'signin' ? 'Sign In' : 'Register'}
+              </Text>
+              <Text className="mt-1 text-sm" style={{ color: colors.textMuted }}>
+                {mode === 'signin' ? 'Welcome back! Please enter your details' : 'Join the global financial network'}
+              </Text>
+            </View>
+
+            <SegmentControl
+              options={[
+                { label: 'Sign In', value: 'signin' },
+                { label: 'Sign Up', value: 'signup' },
+              ]}
+              value={mode}
+              onChange={(value) => onSwitchMode(value as Mode)}
+            />
+
+            <View className="mt-4">
+              <AnimatePresence>
+                {mode === 'signup' && (
+                  <MotiView
+                    key="name"
+                    from={{ opacity: 0, height: 0, marginBottom: 0 }}
+                    animate={{ opacity: 1, height: 80, marginBottom: 16 }}
+                    exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                    transition={{ type: 'timing', duration: 300 }}
+                  >
+                    <Input
+                      label="Full Name"
+                      icon="person-outline"
+                      placeholder="Enter your name"
+                      value={fullName}
+                      onChangeText={(text) => {
+                        setFullName(text);
+                        if (errors.fullName) setErrors((prev) => ({ ...prev, fullName: undefined }));
+                      }}
+                      error={errors.fullName}
+                    />
+                  </MotiView>
+                )}
+              </AnimatePresence>
+
+              <Input
+                label="Email Address"
+                icon="mail-outline"
+                placeholder="Enter your email"
+                value={email}
+                onChangeText={(text) => {
+                  setEmail(text);
+                  if (errors.email) setErrors((prev) => ({ ...prev, email: undefined }));
+                }}
+                error={errors.email}
+              />
+
+              <Input
+                label="Password"
+                icon="lock-closed-outline"
+                placeholder="Enter your password"
+                secure
+                showSecureText={showPassword}
+                onToggleSecure={() => setShowPassword((prev) => !prev)}
+                value={password}
+                onChangeText={(text) => {
+                  setPassword(text);
+                  if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }));
+                }}
+                error={errors.password}
+              />
+
+              {mode === 'signup' && (
+                <Input
+                  label="Confirm Password"
+                  icon="shield-checkmark-outline"
+                  placeholder="Confirm your password"
+                  secure
+                  showSecureText={showConfirmPassword}
+                  onToggleSecure={() => setShowConfirmPassword((prev) => !prev)}
+                  value={confirmPassword}
+                  onChangeText={(text) => {
+                    setConfirmPassword(text);
+                    if (errors.confirmPassword) setErrors((prev) => ({ ...prev, confirmPassword: undefined }));
+                  }}
+                  error={errors.confirmPassword}
+                />
+              )}
+
+              {mode === 'signin' && (
+                <Pressable className="mb-6 mt-2 self-end">
+                  <Text className="text-sm font-semibold" style={{ color: colors.accentB }}>
+                    Forgot password?
+                  </Text>
+                </Pressable>
+              )}
+
+              <MotiView
+                animate={{ scale: canSubmit ? 1 : 0.98 }}
+                transition={{ type: 'spring', damping: 15 }}
+              >
+                <Pressable
+                  onPress={onSubmit}
+                  disabled={!canSubmit}
+                  className="mt-2 overflow-hidden rounded-2xl"
+                  style={Platform.select({
+                    ios: {
+                      shadowColor: canSubmit ? colors.accentB : 'transparent',
+                      shadowOffset: { width: 0, height: 4 },
+                      shadowOpacity: 0.3,
+                      shadowRadius: 8,
+                    },
+                  })}
+                >
+                  <LinearGradient
+                    colors={canSubmit ? [colors.primary, '#1F2937'] : isDark ? ['#334155', '#1E293B'] : ['#E2E8F0', '#CBD5E1']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    className="items-center justify-center py-4"
+                  >
+                    <Text className="text-lg font-bold" style={{ color: canSubmit ? '#FFFFFF' : colors.textMuted }}>
+                      {title}
+                    </Text>
+                  </LinearGradient>
+                </Pressable>
+              </MotiView>
+            </View>
+          </LinearGradient>
+        </MotiView>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -210,6 +269,7 @@ type InputProps = {
   placeholder: string;
   value: string;
   onChangeText: (value: string) => void;
+  icon: keyof typeof Ionicons.glyphMap;
   error?: string;
   secure?: boolean;
   showSecureText?: boolean;
@@ -221,41 +281,64 @@ function Input({
   placeholder,
   value,
   onChangeText,
+  icon,
   error,
   secure = false,
   showSecureText = false,
   onToggleSecure,
 }: InputProps) {
   const { colors, isDark } = useAppTheme();
+  const [isFocused, setIsFocused] = useState(false);
 
   return (
-    <View className="mt-4">
-      <Text className="mb-2 text-sm font-medium" style={{ color: colors.text }}>
+    <View className="mb-4">
+      <Text className="mb-1.5 ml-1 text-xs font-bold uppercase tracking-wider" style={{ color: colors.textMuted }}>
         {label}
       </Text>
-      <View
-        className="h-12 flex-row items-center rounded-xl border px-3"
-        style={{ borderColor: error ? '#EF4444' : colors.border, backgroundColor: isDark ? '#161A20' : '#F8FAFC' }}
+      <MotiView
+        animate={{ 
+          borderColor: error ? '#EF4444' : isFocused ? colors.accentB : colors.border,
+          backgroundColor: isDark ? (isFocused ? '#1F242B' : '#161A20') : (isFocused ? '#FFFFFF' : '#F8FAFC'),
+          scale: isFocused ? 1.01 : 1
+        }}
+        transition={{ type: 'timing', duration: 200 }}
+        className="h-14 flex-row items-center rounded-2xl border px-4 shadow-sm"
+        style={{
+          shadowColor: isFocused ? colors.accentB : 'transparent',
+          shadowOpacity: 0.05,
+          shadowRadius: 10,
+        }}
       >
+        <Ionicons 
+          name={icon} 
+          size={20} 
+          color={error ? '#EF4444' : isFocused ? colors.accentB : colors.textMuted} 
+          style={{ marginRight: 12 }} 
+        />
         <TextInput
           placeholder={placeholder}
-          placeholderTextColor={colors.textMuted}
+          placeholderTextColor={isDark ? '#4B5563' : '#9CA3AF'}
           secureTextEntry={secure && !showSecureText}
           value={value}
           onChangeText={onChangeText}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
           autoCapitalize="none"
-          style={{ color: colors.text, flex: 1, fontSize: 16 }}
+          selectionColor={colors.accentB}
+          style={{ color: colors.text, flex: 1, fontSize: 16, fontWeight: '500' }}
         />
         {secure ? (
-          <Pressable onPress={onToggleSecure} hitSlop={8}>
-            <Ionicons name={showSecureText ? 'eye-off-outline' : 'eye-outline'} size={18} color={colors.textMuted} />
+          <Pressable onPress={onToggleSecure} hitSlop={12} className="p-1">
+            <Ionicons name={showSecureText ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.textMuted} />
           </Pressable>
         ) : null}
-      </View>
+      </MotiView>
       {error ? (
-        <Text className="mt-1 text-xs" style={{ color: '#EF4444' }}>
-          {error}
-        </Text>
+        <MotiView from={{ opacity: 0, translateX: -10 }} animate={{ opacity: 1, translateX: 0 }} className="ml-1 mt-1">
+          <Text className="text-xs font-medium" style={{ color: '#EF4444' }}>
+            {error}
+          </Text>
+        </MotiView>
       ) : null}
     </View>
   );
