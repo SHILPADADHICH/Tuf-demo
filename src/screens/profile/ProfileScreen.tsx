@@ -1,63 +1,240 @@
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { MotiView } from 'moti';
-import type { ReactNode } from 'react';
-import { Pressable, ScrollView, Switch, Text, View } from 'react-native';
+import { Ionicons } from "@expo/vector-icons";
+import { AnimatePresence, MotiView } from "moti";
+import { useState } from "react";
+import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 
-import { GradientOrbs } from '@/components/common/GradientOrbs';
-import { useAppTheme } from '@/theme/ThemeProvider';
+import { BackgroundPatterns } from "@/components/common/BackgroundPatterns";
+import { SegmentControl } from "@/components/common/SegmentControl";
+import { useAppTheme } from "@/theme/ThemeProvider";
 
-type ProfileScreenProps = { onToggleTheme: () => void };
+type ProfileScreenProps = { onToggleTheme: () => void; onLogout: () => void };
 
-export function ProfileScreen({ onToggleTheme }: ProfileScreenProps) {
+export function ProfileScreen({ onToggleTheme, onLogout }: ProfileScreenProps) {
   const { colors, isDark } = useAppTheme();
+  const [mode, setMode] = useState<"Preview" | "Edit">("Preview");
+  const [profile, setProfile] = useState({
+    name: "Jordan Riley",
+    email: "j.riley@gmail.com",
+  });
 
   return (
     <View className="flex-1" style={{ backgroundColor: colors.background }}>
-      <GradientOrbs />
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 56, paddingBottom: 110 }}>
-        <View className="mb-6 flex-row items-center justify-between">
-          <Text className="text-3xl font-bold" style={{ color: colors.text }}>Profile</Text>
-          <Ionicons name="moon-outline" size={21} color={colors.text} onPress={onToggleTheme} />
-        </View>
-
-        <LinearGradient colors={['#9333EA', '#3B82F6']} className="mb-6 rounded-3xl p-5">
-          <View className="flex-row items-center gap-4">
-            <View className="h-16 w-16 items-center justify-center rounded-2xl border border-white/30 bg-white/20">
-              <Ionicons name="person" size={30} color="#fff" />
-            </View>
-            <View>
-              <Text className="text-xl font-bold text-white">Jordan Riley</Text>
-              <Text className="text-sm text-white/80">jordan.riley@gmail.com</Text>
-              <Text className="mt-1 text-xs text-white/60">Member since Mar 2024</Text>
-            </View>
-          </View>
-        </LinearGradient>
-
-        <MotiView from={{ opacity: 0, translateY: 8 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing' }} className="rounded-3xl border p-3" style={{ borderColor: colors.border, backgroundColor: `${colors.surface}CC` }}>
-          <Row icon="moon" label="Dark Mode" right={<Switch value={isDark} onValueChange={onToggleTheme} trackColor={{ true: '#9333EA', false: '#64748B' }} />} colors={colors} />
-          <Row icon="notifications" label="Notifications" right={<Ionicons name="chevron-forward" size={16} color={colors.textMuted} />} colors={colors} />
-          <Row icon="lock-closed" label="Security" right={<Ionicons name="chevron-forward" size={16} color={colors.textMuted} />} colors={colors} />
-          <Row icon="help-circle" label="Help & Support" right={<Ionicons name="chevron-forward" size={16} color={colors.textMuted} />} colors={colors} />
-          <Pressable className="mt-2 rounded-2xl border border-red-500/30 px-4 py-3">
-            <Text className="font-semibold text-red-400">Logout</Text>
+      <BackgroundPatterns />
+      <ScrollView
+        contentContainerStyle={{
+          paddingHorizontal: 24,
+          paddingTop: 64,
+          paddingBottom: 160,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
+        <MotiView
+          from={{ opacity: 0, translateY: -10 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          className="mb-10 flex-row items-center justify-between"
+        >
+          <Text className="text-3xl font-black" style={{ color: colors.text }}>
+            Profile
+          </Text>
+          <Pressable
+            onPress={onToggleTheme}
+            className="h-12 w-12 items-center justify-center rounded-2xl border"
+            style={{
+              borderColor: colors.border,
+              backgroundColor: isDark
+                ? "rgba(255,255,255,0.03)"
+                : "rgba(0,0,0,0.02)",
+            }}
+          >
+            <Ionicons
+              name={isDark ? "sunny-outline" : "moon-outline"}
+              size={22}
+              color={colors.text}
+            />
           </Pressable>
         </MotiView>
+
+        <View className="items-center mb-10">
+          <View className="h-28 w-28 items-center justify-center rounded-full border-4 border-white/5 bg-white/10 shadow-xl">
+            <Text className="text-4xl font-black text-white">
+              {profile.name
+                .split(" ")
+                .map((n) => n[0])
+                .join("")}
+            </Text>
+          </View>
+          <Text
+            numberOfLines={1}
+            className="mt-4 text-2xl font-black text-center"
+            style={{ color: colors.text }}
+          >
+            {profile.name}
+          </Text>
+        </View>
+
+        <View className="mb-10 items-center">
+          <View style={{ width: 220 }}>
+            <SegmentControl
+              options={[
+                { label: "Preview", value: "Preview" },
+                { label: "Edit", value: "Edit" },
+              ]}
+              value={mode}
+              onChange={setMode}
+            />
+          </View>
+        </View>
+
+        <AnimatePresence exitBeforeEnter>
+          {mode === "Preview" ? (
+            <MotiView
+              key="preview"
+              from={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="rounded-[32px] border p-8"
+              style={{
+                borderColor: colors.border,
+                backgroundColor: isDark
+                  ? "rgba(255,255,255,0.02)"
+                  : "rgba(0,0,0,0.01)",
+              }}
+            >
+              <StatRow label="Spending" value="$42,500.00" colors={colors} />
+              <StatRow label="Email" value={profile.email} colors={colors} />
+              <StatRow label="Balance" value="$12,500.00" colors={colors} />
+
+              <View className="my-6 h-[1px] w-full bg-white/5" />
+
+              <Pressable
+                onPress={onLogout}
+                className="h-14 items-center justify-center rounded-2xl border border-rose-500/20 bg-rose-500/5 active:opacity-70"
+              >
+                <Text
+                  className="text-sm font-black uppercase tracking-[4px]"
+                  style={{ color: colors.danger }}
+                >
+                  Logout
+                </Text>
+              </Pressable>
+            </MotiView>
+          ) : (
+            <MotiView
+              key="edit"
+              from={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="rounded-[32px] border p-8"
+              style={{
+                borderColor: colors.border,
+                backgroundColor: isDark
+                  ? "rgba(255,255,255,0.02)"
+                  : "rgba(0,0,0,0.01)",
+              }}
+            >
+              <Text
+                className="mb-6 text-xl font-bold"
+                style={{ color: colors.text }}
+              >
+                Edit Profile
+              </Text>
+
+              <View className="mb-6">
+                <Text
+                  className="mb-2 text-[10px] font-black uppercase tracking-widest opacity-40"
+                  style={{ color: colors.text }}
+                >
+                  Full Name
+                </Text>
+                <View
+                  className="h-14 justify-center rounded-2xl border px-4"
+                  style={{
+                    borderColor: colors.border,
+                    backgroundColor: "rgba(255,255,255,0.03)",
+                  }}
+                >
+                  <TextInput
+                    value={profile.name}
+                    onChangeText={(v) => setProfile((p) => ({ ...p, name: v }))}
+                    style={{
+                      color: colors.text,
+                      fontSize: 16,
+                      fontWeight: "700",
+                    }}
+                  />
+                </View>
+              </View>
+
+              <View className="mb-8">
+                <Text
+                  className="mb-2 text-[10px] font-black uppercase tracking-widest opacity-40"
+                  style={{ color: colors.text }}
+                >
+                  Email Address
+                </Text>
+                <View
+                  className="h-14 justify-center rounded-2xl border px-4"
+                  style={{
+                    borderColor: colors.border,
+                    backgroundColor: "rgba(255,255,255,0.03)",
+                  }}
+                >
+                  <TextInput
+                    value={profile.email}
+                    onChangeText={(v) =>
+                      setProfile((p) => ({ ...p, email: v }))
+                    }
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    style={{
+                      color: colors.text,
+                      fontSize: 16,
+                      fontWeight: "700",
+                    }}
+                  />
+                </View>
+              </View>
+
+              <Pressable
+                onPress={() => setMode("Preview")}
+                className="h-14 items-center justify-center rounded-2xl"
+                style={{ backgroundColor: colors.primary }}
+              >
+                <Text
+                  className="text-sm font-black uppercase tracking-[2px]"
+                  style={{ color: "#000" }}
+                >
+                  Save Changes
+                </Text>
+              </Pressable>
+            </MotiView>
+          )}
+        </AnimatePresence>
       </ScrollView>
     </View>
   );
 }
 
-function Row({ icon, label, right, colors }: { icon: string; label: string; right: ReactNode; colors: any }) {
+function StatRow({
+  label,
+  value,
+  colors,
+}: {
+  label: string;
+  value: string;
+  colors: any;
+}) {
   return (
-    <View className="flex-row items-center justify-between border-b px-2 py-3" style={{ borderBottomColor: colors.border }}>
-      <View className="flex-row items-center gap-3">
-        <View className="h-10 w-10 items-center justify-center rounded-xl" style={{ backgroundColor: `${colors.primary}22` }}>
-          <Ionicons name={`${icon}-outline` as never} size={18} color={colors.primary} />
-        </View>
-        <Text className="font-medium" style={{ color: colors.text }}>{label}</Text>
-      </View>
-      {right}
+    <View className="flex-row items-center justify-between mb-6">
+      <Text
+        className="text-sm font-black uppercase tracking-widest opacity-40"
+        style={{ color: colors.text }}
+      >
+        {label}
+      </Text>
+      <Text className="text-base font-black" style={{ color: colors.text }}>
+        {value}
+      </Text>
     </View>
   );
 }

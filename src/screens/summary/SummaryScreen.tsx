@@ -1,144 +1,356 @@
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { MotiView } from 'moti';
-import { ScrollView, Text, View } from 'react-native';
-import Svg, { Circle } from 'react-native-svg';
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { MotiView } from "moti";
+import { useState } from "react";
+import { Pressable, ScrollView, Text, View } from "react-native";
+import Svg, {
+  Defs,
+  Path,
+  Stop,
+  LinearGradient as SvgGradient,
+} from "react-native-svg";
 
-import { GradientOrbs } from '@/components/common/GradientOrbs';
-import { formatCurrency, useFinance } from '@/store/finance/FinanceProvider';
-import { useAppTheme } from '@/theme/ThemeProvider';
+import { BackgroundPatterns } from "@/components/common/BackgroundPatterns";
+import { SegmentControl } from "@/components/common/SegmentControl";
+import { formatCurrency, useFinance } from "@/store/finance/FinanceProvider";
+import { useAppTheme } from "@/theme/ThemeProvider";
 
 type SummaryScreenProps = { onToggleTheme: () => void };
 
 export function SummaryScreen({ onToggleTheme }: SummaryScreenProps) {
-  const { colors } = useAppTheme();
-  const { loading, monthly } = useFinance();
+  const { colors, isDark } = useAppTheme();
+  const { monthly } = useFinance();
+  const [period, setPeriod] = useState<"Weekly" | "Monthly">("Weekly");
 
-  const total = monthly.income + monthly.expense;
-  const incomeRatio = total ? monthly.income / total : 0;
-  const expenseRatio = total ? monthly.expense / total : 0;
-  const trendData = [
-    { month: 'Jan', income: 3200, expenses: 2700 },
-    { month: 'Feb', income: 3600, expenses: 2900 },
-    { month: 'Mar', income: 4100, expenses: 3100 },
-    { month: 'Apr', income: monthly.income || 3500, expenses: monthly.expense || 2200 },
-  ];
-  const topCategories = [
-    { name: 'Food', amount: monthly.expense * 0.35, color: '#FF6B6B' },
-    { name: 'Transport', amount: monthly.expense * 0.22, color: '#4ECDC4' },
-    { name: 'Shopping', amount: monthly.expense * 0.18, color: '#FFD93D' },
-  ];
-  const maxCat = Math.max(1, ...topCategories.map((c) => c.amount));
+  const spentPct = 65; // Mock
 
   return (
     <View className="flex-1" style={{ backgroundColor: colors.background }}>
-      <GradientOrbs />
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 56, paddingBottom: 110 }}>
-        <View className="mb-5 flex-row items-center justify-between">
-          <Text className="text-3xl font-bold" style={{ color: colors.text }}>Analytics</Text>
-          <View className="flex-row items-center gap-3">
-            <View className="flex-row items-center rounded-2xl border px-3 py-2" style={{ borderColor: colors.border, backgroundColor: `${colors.surface}CC` }}>
-              <Ionicons name="calendar-outline" size={15} color={colors.text} />
-              <Text className="ml-2 text-xs" style={{ color: colors.text }}>April 2026</Text>
-            </View>
-            <Ionicons name="moon-outline" size={20} color={colors.text} onPress={onToggleTheme} />
-          </View>
-        </View>
-
-        <View className="mb-4 flex-row gap-3">
-          <LinearGradient colors={['#16A34A', '#22C55E']} className="flex-1 rounded-2xl p-4">
-            <Text className="text-xs text-white/80">Income</Text>
-            <Text className="mt-1 text-xl font-bold text-white">{formatCurrency(monthly.income)}</Text>
-          </LinearGradient>
-          <LinearGradient colors={['#DC2626', '#F43F5E']} className="flex-1 rounded-2xl p-4">
-            <Text className="text-xs text-white/80">Expenses</Text>
-            <Text className="mt-1 text-xl font-bold text-white">{formatCurrency(monthly.expense)}</Text>
-          </LinearGradient>
-        </View>
-
-        <View className="rounded-3xl border p-5" style={{ borderColor: colors.border, backgroundColor: `${colors.surface}CC` }}>
-          <Text className="mb-4 text-lg font-semibold" style={{ color: colors.text }}>Income vs Expenses</Text>
-          {loading ? (
-            <Text style={{ color: colors.textMuted }}>Loading chart...</Text>
-          ) : total === 0 ? (
-            <Text style={{ color: colors.textMuted }}>Add some transactions to see analytics.</Text>
-          ) : (
-            <View className="items-center">
-              <Donut incomeRatio={incomeRatio} expenseRatio={expenseRatio} />
-              <View className="mt-4 w-full">
-                <Legend color="#6BCF7F" label="Income" value={formatCurrency(monthly.income)} />
-                <Legend color="#FF6B6B" label="Expenses" value={formatCurrency(monthly.expense)} />
-              </View>
-            </View>
-          )}
-        </View>
-
-        <MotiView from={{ opacity: 0, translateY: 6 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 500 }} className="mt-5 rounded-3xl border p-5" style={{ borderColor: colors.border, backgroundColor: `${colors.surface}CC` }}>
-          <Text className="text-lg font-semibold" style={{ color: colors.text }}>Balance</Text>
-          <Text className="mt-1 text-2xl font-bold" style={{ color: monthly.balance >= 0 ? '#6BCF7F' : '#FF6B6B' }}>
-            {formatCurrency(monthly.balance)}
+      <BackgroundPatterns />
+      <ScrollView
+        contentContainerStyle={{
+          paddingHorizontal: 24,
+          paddingTop: 64,
+          paddingBottom: 160,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
+        <View className="mb-8 flex-row items-center justify-between">
+          <Text
+            className="text-3xl font-extrabold"
+            style={{ color: colors.text }}
+          >
+            Balances
           </Text>
-        </MotiView>
+          <Pressable
+            onPress={onToggleTheme}
+            className="h-11 w-11 items-center justify-center rounded-2xl border"
+            style={{
+              borderColor: colors.border,
+              backgroundColor: isDark
+                ? "rgba(255,255,255,0.03)"
+                : "rgba(0,0,0,0.02)",
+            }}
+          >
+            <Ionicons
+              name={isDark ? "sunny-outline" : "moon-outline"}
+              size={20}
+              color={colors.text}
+            />
+          </Pressable>
+        </View>
 
-        <View className="mt-5 rounded-3xl border p-5" style={{ borderColor: colors.border, backgroundColor: `${colors.surface}CC` }}>
-          <Text className="mb-4 text-lg font-semibold" style={{ color: colors.text }}>Monthly Trend</Text>
-          <View className="flex-row items-end justify-between">
-            {trendData.map((item) => (
-              <View key={item.month} className="items-center">
-                <View className="h-24 w-4 justify-end rounded-full bg-slate-700/30">
-                  <View className="rounded-full bg-emerald-400" style={{ height: Math.max(8, (item.income / 4500) * 96) }} />
-                </View>
-                <View className="mt-1 h-24 w-4 justify-end rounded-full bg-slate-700/30">
-                  <View className="rounded-full bg-rose-400" style={{ height: Math.max(8, (item.expenses / 4500) * 96) }} />
-                </View>
-                <Text className="mt-2 text-xs" style={{ color: colors.textMuted }}>{item.month}</Text>
-              </View>
-            ))}
+        <View className="mb-10 items-center">
+          <CreditScoreGauge score={780} colors={colors} />
+          <MotiView
+            from={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="mt-[-20px] rounded-2xl bg-white px-4 py-2 shadow-xl"
+          >
+            <Text className="text-xs font-bold text-black text-center">
+              Your Credit Score is excellent
+            </Text>
+          </MotiView>
+        </View>
+
+        <View
+          className="mb-10 rounded-[32px] border p-8"
+          style={{
+            borderColor: colors.border,
+            backgroundColor: isDark ? "#000000" : "#FFFFFF",
+          }}
+        >
+          <Text
+            className="mb-6 text-sm font-black uppercase tracking-widest opacity-40"
+            style={{ color: colors.text }}
+          >
+            Monthly Summary
+          </Text>
+          <View className="flex-row justify-between mb-8">
+            <View>
+              <Text className="text-[10px] font-black uppercase text-emerald-500 mb-1">
+                Total Income
+              </Text>
+              <Text
+                className="text-xl font-black"
+                style={{ color: colors.text }}
+              >
+                {formatCurrency(monthly.income)}
+              </Text>
+            </View>
+            <View className="items-end">
+              <Text className="text-[10px] font-black uppercase text-rose-500 mb-1">
+                Total Expenses
+              </Text>
+              <Text
+                className="text-xl font-black"
+                style={{ color: colors.text }}
+              >
+                {formatCurrency(monthly.expense)}
+              </Text>
+            </View>
+          </View>
+          <View className="h-[1px] w-full bg-white/5 mb-6" />
+          <View className="flex-row items-center justify-between">
+            <Text
+              className="text-base font-bold"
+              style={{ color: colors.textMuted }}
+            >
+              Remaining Balance
+            </Text>
+            <Text
+              className="text-2xl font-black"
+              style={{ color: colors.primary }}
+            >
+              {formatCurrency(monthly.income - monthly.expense)}
+            </Text>
           </View>
         </View>
 
-        <View className="mt-5 rounded-3xl border p-5" style={{ borderColor: colors.border, backgroundColor: `${colors.surface}CC` }}>
-          <Text className="mb-4 text-lg font-semibold" style={{ color: colors.text }}>Top Spending Categories</Text>
-          {topCategories.map((category) => (
-            <View key={category.name} className="mb-3">
-              <View className="mb-1 flex-row items-center justify-between">
-                <Text className="text-sm" style={{ color: colors.text }}>{category.name}</Text>
-                <Text className="text-sm font-semibold" style={{ color: colors.text }}>{formatCurrency(category.amount)}</Text>
-              </View>
-              <View className="h-2 rounded-full bg-slate-700/30">
-                <View className="h-2 rounded-full" style={{ width: `${(category.amount / maxCat) * 100}%`, backgroundColor: category.color }} />
-              </View>
+        <View className="mb-10">
+          <View className="mb-5 flex-row items-center justify-between">
+            <Text className="text-xl font-bold" style={{ color: colors.text }}>
+              Currencies
+            </Text>
+            <Pressable>
+              <Ionicons
+                name="add-circle-outline"
+                size={24}
+                color={colors.primary}
+              />
+            </Pressable>
+          </View>
+
+          <CurrencyItem
+            flag="🇨🇦"
+            code="CAD"
+            name="Canadian Dollar"
+            balance="12,500.00"
+            colors={colors}
+            isDark={isDark}
+          />
+          <CurrencyItem
+            flag="🇺🇸"
+            code="USD"
+            name="United States Dollar"
+            balance="8,120.45"
+            colors={colors}
+            isDark={isDark}
+          />
+          <CurrencyItem
+            flag="🇪🇺"
+            code="EUR"
+            name="Euro"
+            balance="4,250.00"
+            colors={colors}
+            isDark={isDark}
+          />
+        </View>
+
+        <View>
+          <View className="mb-6 flex-row items-center justify-between">
+            <Text className="text-xl font-bold" style={{ color: colors.text }}>
+              Activity
+            </Text>
+            <View style={{ width: 160 }}>
+              <SegmentControl
+                options={[
+                  { label: "Weekly", value: "Weekly" },
+                  { label: "Monthly", value: "Monthly" },
+                ]}
+                value={period}
+                onChange={setPeriod}
+              />
             </View>
-          ))}
+          </View>
+
+          <View
+            className="rounded-[32px] border p-6"
+            style={{
+              borderColor: colors.border,
+              backgroundColor: isDark ? "#0F172A" : "#F8FAFC",
+            }}
+          >
+            <View className="flex-row items-end justify-between h-48 px-1">
+              {[45, 80, 55, 95, 75, 60, 90].map((h, i) => (
+                <View key={i} className="items-center">
+                  <View
+                    className="w-4 rounded-full overflow-hidden"
+                    style={{
+                      height: 140,
+                      justifyContent: "flex-end",
+                      backgroundColor: isDark
+                        ? "rgba(255,255,255,0.05)"
+                        : "rgba(0,0,0,0.05)",
+                    }}
+                  >
+                    <LinearGradient
+                      colors={
+                        i === 4
+                          ? [colors.primary, colors.secondary]
+                          : isDark
+                            ? ["#1E293B", "#0F172A"]
+                            : ["#E2E8F0", "#CBD5E1"]
+                      }
+                      className="w-4 rounded-full"
+                      style={{ height: `${h}%` }}
+                    />
+                  </View>
+                  <Text
+                    className="mt-3 text-[10px] font-bold uppercase"
+                    style={{
+                      color: i === 4 ? colors.primary : colors.textMuted,
+                    }}
+                  >
+                    {["M", "T", "W", "T", "F", "S", "S"][i]}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
         </View>
       </ScrollView>
     </View>
   );
 }
 
-function Donut({ incomeRatio, expenseRatio }: { incomeRatio: number; expenseRatio: number }) {
-  const size = 170;
-  const stroke = 14;
-  const r = (size - stroke) / 2;
-  const c = 2 * Math.PI * r;
+function CreditScoreGauge({ score, colors }: { score: number; colors: any }) {
+  const size = 260;
+  const stroke = 12;
+  const center = size / 2;
+  const r = (size - stroke * 2) / 2;
+
+  // Semi-circle path
+  const startAngle = 180;
+  const endAngle = 0;
+  const x1 = center + r * Math.cos((startAngle * Math.PI) / 180);
+  const y1 = center + r * Math.sin((startAngle * Math.PI) / 180);
+  const x2 = center + r * Math.cos((endAngle * Math.PI) / 180);
+  const y2 = center + r * Math.sin((endAngle * Math.PI) / 180);
+
+  const d = `M ${x1} ${y1} A ${r} ${r} 0 0 1 ${x2} ${y2}`;
 
   return (
-    <Svg width={size} height={size}>
-      <Circle cx={size / 2} cy={size / 2} r={r} stroke="#1F2937" strokeWidth={stroke} fill="none" />
-      <Circle cx={size / 2} cy={size / 2} r={r} stroke="#6BCF7F" strokeWidth={stroke} fill="none" strokeDasharray={`${c * incomeRatio} ${c}`} strokeLinecap="round" rotation="-90" origin={`${size / 2}, ${size / 2}`} />
-      <Circle cx={size / 2} cy={size / 2} r={r} stroke="#FF6B6B" strokeWidth={stroke} fill="none" strokeDasharray={`${c * expenseRatio} ${c}`} strokeDashoffset={-c * incomeRatio} strokeLinecap="round" rotation="-90" origin={`${size / 2}, ${size / 2}`} />
-    </Svg>
+    <View className="items-center justify-center">
+      <Svg width={size} height={size / 1.5}>
+        <Defs>
+          <SvgGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <Stop offset="0%" stopColor="#F43F5E" />
+            <Stop offset="50%" stopColor="#FBBF24" />
+            <Stop offset="100%" stopColor="#7FE3D6" />
+          </SvgGradient>
+        </Defs>
+        <Path
+          d={d}
+          fill="none"
+          stroke="rgba(255,255,255,0.05)"
+          strokeWidth={stroke}
+          strokeLinecap="round"
+        />
+        <Path
+          d={d}
+          fill="none"
+          stroke="url(#gaugeGradient)"
+          strokeWidth={stroke}
+          strokeDasharray="360"
+          strokeDashoffset={100}
+          strokeLinecap="round"
+        />
+      </Svg>
+      <View className="absolute mt-[-30px]">
+        <Text
+          className="text-sm font-black uppercase tracking-[4px] mb-1 text-center"
+          style={{ color: colors.textMuted }}
+        >
+          Score
+        </Text>
+        <Text
+          className="text-7xl font-black text-center"
+          style={{ color: colors.text }}
+        >
+          {score}
+        </Text>
+      </View>
+    </View>
   );
 }
 
-function Legend({ color, label, value }: { color: string; label: string; value: string }) {
+function CurrencyItem({ flag, code, name, balance, colors, isDark }: any) {
   return (
-    <View className="mt-2 flex-row items-center justify-between">
-      <View className="flex-row items-center">
-        <View className="h-3 w-3 rounded-full" style={{ backgroundColor: color }} />
-        <Text className="ml-2 text-sm text-slate-300">{label}</Text>
+    <MotiView
+      from={{ opacity: 0, translateY: 10 }}
+      animate={{ opacity: 1, translateY: 0 }}
+      className="mb-4 flex-row items-center justify-between rounded-3xl border p-5"
+      style={{
+        borderColor: colors.border,
+        backgroundColor: isDark ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)",
+      }}
+    >
+      <View className="flex-row items-center gap-4">
+        <View
+          className="h-12 w-12 items-center justify-center rounded-full"
+          style={{
+            backgroundColor: isDark
+              ? "rgba(255,255,255,0.05)"
+              : "rgba(0,0,0,0.05)",
+          }}
+        >
+          <Text className="text-2xl">{flag}</Text>
+        </View>
+        <View>
+          <Text
+            className="text-base font-bold tracking-tight"
+            style={{ color: colors.text }}
+          >
+            {code} Account
+          </Text>
+          <Text
+            className="text-xs font-bold"
+            style={{ color: colors.textMuted }}
+          >
+            {name}
+          </Text>
+        </View>
       </View>
-      <Text className="text-sm text-slate-300">{value}</Text>
-    </View>
+      <View className="items-end">
+        <Text className="text-lg font-black" style={{ color: colors.text }}>
+          ${balance}
+        </Text>
+        <Pressable
+          className="mt-1 px-3 py-1 rounded-full border"
+          style={{
+            borderColor: `${colors.primary}40`,
+            backgroundColor: `${colors.primary}10`,
+          }}
+        >
+          <Text
+            className="text-[10px] font-black uppercase"
+            style={{ color: colors.primary }}
+          >
+            Manage
+          </Text>
+        </Pressable>
+      </View>
+    </MotiView>
   );
 }

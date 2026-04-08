@@ -1,6 +1,11 @@
 export type TabParamList = {
   Home: undefined;
   Transactions: undefined;
-  Analytics: undefined;
+  Balances: undefined;
   Profile: undefined;
+};
+
+export type StackParamList = {
+  Main: undefined;
+  Transactions: undefined;
 };

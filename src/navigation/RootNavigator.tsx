@@ -1,10 +1,14 @@
-import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/native';
-import { useEffect, useMemo, useState } from 'react';
+import {
+  DarkTheme,
+  DefaultTheme,
+  NavigationContainer,
+} from "@react-navigation/native";
+import { useEffect, useMemo, useState } from "react";
 
-import { MainTabs } from '@/navigation/MainTabs';
-import { AuthScreen } from '@/screens/auth/AuthScreen';
-import { SplashScreen } from '@/screens/splash/SplashScreen';
-import { useAppTheme } from '@/theme/ThemeProvider';
+import { MainTabs } from "@/navigation/MainTabs";
+import { AuthScreen } from "@/screens/auth/AuthScreen";
+import { SplashScreen } from "@/screens/splash/SplashScreen";
+import { useAppTheme } from "@/theme/ThemeProvider";
 
 export function RootNavigator() {
   const [showSplash, setShowSplash] = useState(true);
@@ -29,8 +33,10 @@ export function RootNavigator() {
         notification: colors.danger,
       },
     }),
-    [colors, isDark]
+    [colors, isDark],
   );
+
+  const handleLogout = () => setAuthed(false);
 
   if (showSplash) {
     return <SplashScreen />;
@@ -39,7 +45,7 @@ export function RootNavigator() {
   return (
     <NavigationContainer theme={navTheme}>
       {isAuthed ? (
-        <MainTabs onToggleTheme={toggleTheme} />
+        <MainTabs onToggleTheme={toggleTheme} onLogout={handleLogout} />
       ) : (
         <AuthScreen onContinue={() => setAuthed(true)} />
       )}

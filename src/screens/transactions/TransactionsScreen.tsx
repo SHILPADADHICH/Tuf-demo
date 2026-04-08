@@ -1,180 +1,548 @@
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { MotiView } from 'moti';
-import { useMemo, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Ionicons } from "@expo/vector-icons";
+import { AnimatePresence, MotiView } from "moti";
+import { useEffect, useMemo, useState } from "react";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 
-import { GradientOrbs } from '@/components/common/GradientOrbs';
-import { categoryById, filterByType, formatCurrency, useFinance } from '@/store/finance/FinanceProvider';
-import { useAppTheme } from '@/theme/ThemeProvider';
-import type { TransactionInput } from '@/types/finance';
+import { BackgroundPatterns } from "@/components/common/BackgroundPatterns";
+import { CalendarModal } from "@/components/common/CalendarModal";
+import {
+  categoryById,
+  filterByType,
+  formatCurrency,
+  useFinance,
+} from "@/store/finance/FinanceProvider";
+import { useAppTheme } from "@/theme/ThemeProvider";
+import type { TransactionInput } from "@/types/finance";
 
-type TransactionsScreenProps = { onToggleTheme: () => void };
-type FilterType = 'all' | 'income' | 'expense';
-type FieldErrors = Partial<Record<'amount' | 'categoryId' | 'date', string>>;
+type TransactionsScreenProps = {
+  onToggleTheme: () => void;
+  route?: any;
+  navigation?: any;
+};
+type FilterType = "all" | "income" | "expense";
+type FieldErrors = Partial<Record<"amount" | "categoryId" | "date", string>>;
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-export function TransactionsScreen({ onToggleTheme }: TransactionsScreenProps) {
+export function TransactionsScreen({
+  onToggleTheme,
+  route,
+  navigation,
+}: TransactionsScreenProps) {
   const { colors, isDark } = useAppTheme();
-  const { loading, categories, transactions, addCategory, addTransaction } = useFinance();
-  const [filter, setFilter] = useState<FilterType>('all');
-  const [customCategory, setCustomCategory] = useState('');
+  const { loading, categories, transactions, addCategory, addTransaction } =
+    useFinance();
+  const [filter, setFilter] = useState<FilterType>("all");
   const [errors, setErrors] = useState<FieldErrors>({});
-  const [form, setForm] = useState<TransactionInput>({ type: 'expense', amount: '', categoryId: 'food', date: today(), note: '' });
+  const [showAdd, setShowAdd] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [form, setForm] = useState<TransactionInput>({
+    type: "expense",
+    amount: "",
+    categoryId: "food",
+    date: today(),
+    note: "",
+  });
+
+  useEffect(() => {
+    if (route?.params?.showAdd) {
+      setShowAdd(true);
+      // Clear the param after showing so it doesn't pop up again on back
+      navigation?.setParams({ showAdd: undefined });
+    }
+  }, [route?.params?.showAdd]);
 
   const list = useMemo(() => {
-    if (filter === 'all') return transactions;
+    if (filter === "all") return transactions;
     return filterByType(transactions, filter);
   }, [filter, transactions]);
 
   const submit = () => {
     const nextErrors: FieldErrors = {};
     const amount = Number(form.amount);
-    if (!form.amount || Number.isNaN(amount) || amount <= 0) nextErrors.amount = 'Amount should be greater than 0';
-    if (!form.categoryId) nextErrors.categoryId = 'Please select a category';
-    if (!form.date || Number.isNaN(new Date(form.date).getTime())) nextErrors.date = 'Date format should be YYYY-MM-DD';
+    if (!form.amount || Number.isNaN(amount) || amount <= 0)
+      nextErrors.amount = "Invalid amount";
+    if (!form.categoryId) nextErrors.categoryId = "Required";
+    if (!form.date) nextErrors.date = "Required";
 
     if (Object.keys(nextErrors).length) {
       setErrors(nextErrors);
       return;
     }
 
-    addTransaction({ amount, categoryId: form.categoryId, date: form.date, note: form.note.trim(), type: form.type });
+    addTransaction({
+      amount,
+      categoryId: form.categoryId,
+      date: form.date,
+      note: form.note.trim(),
+      type: form.type,
+    });
     setErrors({});
-    setForm((prev) => ({ ...prev, amount: '', note: '' }));
+    setForm((prev) => ({ ...prev, amount: "", note: "" }));
+    setShowAdd(false);
   };
 
   return (
     <View className="flex-1" style={{ backgroundColor: colors.background }}>
-      <GradientOrbs />
-      <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 56, paddingBottom: 120 }}>
-          <View className="mb-5 flex-row items-center justify-between">
-            <Text className="text-3xl font-bold" style={{ color: colors.text }}>Transactions</Text>
-            <View className="flex-row gap-3">
-              <Pressable onPress={onToggleTheme} className="h-11 w-11 items-center justify-center rounded-2xl border" style={{ borderColor: colors.border, backgroundColor: `${colors.surface}CC` }}>
-                <Ionicons name="moon-outline" size={19} color={colors.text} />
-              </Pressable>
-              <Pressable className="h-11 w-11 items-center justify-center rounded-2xl border" style={{ borderColor: colors.border, backgroundColor: `${colors.surface}CC` }}>
-                <Ionicons name="options-outline" size={19} color={colors.text} />
-              </Pressable>
-            </View>
+      <BackgroundPatterns />
+      <KeyboardAvoidingView
+        className="flex-1"
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <ScrollView
+          contentContainerStyle={{
+            paddingHorizontal: 20,
+            paddingTop: 56,
+            paddingBottom: 150,
+          }}
+          showsVerticalScrollIndicator={false}
+        >
+          <View className="mb-8 flex-row items-center justify-between">
+            <Text
+              className="text-3xl font-extrabold"
+              style={{ color: colors.text }}
+            >
+              Activity
+            </Text>
+            <Pressable
+              onPress={() => setShowAdd(!showAdd)}
+              className="h-12 w-12 items-center justify-center rounded-2xl border"
+              style={{
+                borderColor: showAdd ? colors.primary : colors.border,
+                backgroundColor: showAdd
+                  ? `${colors.primary}10`
+                  : "rgba(255,255,255,0.03)",
+              }}
+            >
+              <Ionicons
+                name={showAdd ? "close" : "add"}
+                size={24}
+                color={showAdd ? colors.primary : colors.text}
+              />
+            </Pressable>
           </View>
 
-          <LinearGradient colors={isDark ? ['#161824', '#0E1018'] : ['#FFFFFF', '#EEF2FF']} className="rounded-3xl border p-4" style={{ borderColor: colors.border }}>
-            <Text className="text-lg font-semibold" style={{ color: colors.text }}>Add Transaction</Text>
-            <View className="mt-3 flex-row rounded-2xl p-1" style={{ backgroundColor: isDark ? '#232633' : '#E2E8F0' }}>
-              {(['expense', 'income'] as const).map((t) => {
-                const active = form.type === t;
-                return (
-                  <Pressable key={t} onPress={() => setForm((p) => ({ ...p, type: t }))} className="flex-1 rounded-xl py-2.5" style={{ backgroundColor: active ? '#7C3AED' : 'transparent' }}>
-                    <Text className="text-center text-sm font-semibold" style={{ color: active ? '#fff' : colors.textMuted }}>{t[0].toUpperCase() + t.slice(1)}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-
-            <Field label="Amount" value={form.amount} onChangeText={(v) => setForm((p) => ({ ...p, amount: v }))} placeholder="e.g. 1200" error={errors.amount} />
-            <Field label="Date (YYYY-MM-DD)" value={form.date} onChangeText={(v) => setForm((p) => ({ ...p, date: v }))} placeholder="2026-04-08" error={errors.date} />
-            <Field label="Note" value={form.note} onChangeText={(v) => setForm((p) => ({ ...p, note: v }))} placeholder="Optional note" />
-
-            <Text className="mb-2 mt-4 text-sm font-medium" style={{ color: colors.text }}>Category</Text>
-            <View className="flex-row flex-wrap gap-2">
-              {categories.map((category) => {
-                const active = form.categoryId === category.id;
-                return (
-                  <Pressable
-                    key={category.id}
-                    onPress={() => setForm((p) => ({ ...p, categoryId: category.id }))}
-                    className="flex-row items-center rounded-full border px-3 py-2"
-                    style={{ borderColor: active ? category.color : colors.border, backgroundColor: active ? `${category.color}20` : `${colors.surface}99` }}
-                  >
-                    <Ionicons name={category.icon as never} size={13} color={category.color} />
-                    <Text className="ml-1 text-xs font-medium" style={{ color: colors.text }}>{category.name}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-
-            <View className="mt-4 flex-row gap-2">
-              <View className="h-11 flex-1 justify-center rounded-xl border px-3" style={{ borderColor: colors.border, backgroundColor: `${colors.surface}CC` }}>
-                <TextInput value={customCategory} onChangeText={setCustomCategory} placeholder="Custom category" placeholderTextColor={colors.textMuted} style={{ color: colors.text }} />
-              </View>
-              <Pressable
-                disabled={!customCategory.trim()}
-                onPress={() => {
-                  const id = addCategory(customCategory);
-                  if (id) {
-                    setForm((p) => ({ ...p, categoryId: id }));
-                    setCustomCategory('');
-                  }
-                }}
-                className="rounded-xl px-4"
-                style={{ justifyContent: 'center', backgroundColor: customCategory.trim() ? '#7C3AED' : isDark ? '#334155' : '#CBD5E1' }}
+          <AnimatePresence>
+            {showAdd && (
+              <MotiView
+                from={{ opacity: 0, scale: 0.95, translateY: -20 }}
+                animate={{ opacity: 1, scale: 1, translateY: 0 }}
+                exit={{ opacity: 0, scale: 0.95, translateY: -20 }}
+                className="mb-8"
               >
-                <Text className="font-semibold text-white">Add</Text>
-              </Pressable>
-            </View>
+                <View
+                  className="rounded-[32px] border p-6"
+                  style={{
+                    borderColor: colors.border,
+                    backgroundColor: isDark
+                      ? "rgba(255,255,255,0.03)"
+                      : "rgba(0,0,0,0.02)",
+                  }}
+                >
+                  <Text
+                    className="text-xl font-bold mb-6"
+                    style={{ color: colors.text }}
+                  >
+                    New Transaction
+                  </Text>
 
-            <Pressable onPress={submit} className="mt-5 rounded-xl py-3.5" style={{ backgroundColor: '#7C3AED' }}>
-              <Text className="text-center text-base font-semibold text-white">Save Transaction</Text>
-            </Pressable>
-          </LinearGradient>
+                  <View className="flex-row rounded-2xl bg-white/5 p-1 mb-6">
+                    {(["expense", "income"] as const).map((t) => {
+                      const active = form.type === t;
+                      return (
+                        <Pressable
+                          key={t}
+                          onPress={() => setForm((p) => ({ ...p, type: t }))}
+                          className="flex-1 rounded-xl py-3"
+                          style={{
+                            backgroundColor: active
+                              ? colors.primary
+                              : "transparent",
+                          }}
+                        >
+                          <Text
+                            className="text-center text-xs font-black uppercase"
+                            style={{
+                              color: active ? "#000" : colors.textMuted,
+                            }}
+                          >
+                            {t}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
 
-          <View className="mt-6">
-            <View className="mb-2 flex-row rounded-2xl p-1" style={{ backgroundColor: isDark ? '#1E2230' : '#E2E8F0' }}>
-              {(['all', 'income', 'expense'] as const).map((t) => (
-                <Pressable key={t} onPress={() => setFilter(t)} className="flex-1 rounded-xl py-2" style={{ backgroundColor: filter === t ? '#7C3AED' : 'transparent' }}>
-                  <Text className="text-center text-xs font-semibold" style={{ color: filter === t ? '#fff' : colors.textMuted }}>{t.toUpperCase()}</Text>
+                  <View className="mb-6">
+                    <Field
+                      label="Amount"
+                      value={form.amount}
+                      onChangeText={(v: string) =>
+                        setForm((p) => ({
+                          ...p,
+                          amount: v.replace(/[^0-9.]/g, ""),
+                        }))
+                      }
+                      placeholder="0.00"
+                      error={errors.amount}
+                      colors={colors}
+                      keyboardType="numeric"
+                    />
+                  </View>
+
+                  <View className="mb-8">
+                    <Text
+                      className="mb-3 text-xs font-bold uppercase tracking-widest opacity-40"
+                      style={{ color: colors.text }}
+                    >
+                      Transaction Date
+                    </Text>
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                    >
+                      <View className="flex-row gap-3">
+                        {(() => {
+                          const todayStr = today();
+                          const yesterdayStr = new Date(Date.now() - 86400000)
+                            .toISOString()
+                            .slice(0, 10);
+                          const tomorrowStr = new Date(Date.now() + 86400000)
+                            .toISOString()
+                            .slice(0, 10);
+
+                          const presets = [
+                            { label: "Today", date: todayStr },
+                            { label: "Yesterday", date: yesterdayStr },
+                            { label: "Tomorrow", date: tomorrowStr },
+                          ];
+
+                          return (
+                            <>
+                              <Pressable
+                                onPress={() => setShowCalendar(true)}
+                                className="flex-row items-center rounded-2xl border px-6 py-4"
+                                style={{
+                                  borderColor: colors.primary,
+                                  backgroundColor: `${colors.primary}10`,
+                                  minWidth: 140,
+                                }}
+                              >
+                                <Ionicons
+                                  name="calendar"
+                                  size={18}
+                                  color={colors.primary}
+                                />
+                                <View className="ml-3">
+                                  <Text
+                                    className="text-[10px] font-black uppercase"
+                                    style={{ color: colors.primary }}
+                                  >
+                                    Choose Date
+                                  </Text>
+                                  <Text
+                                    className="mt-0.5 text-[10px] font-bold opacity-60"
+                                    style={{ color: colors.text }}
+                                  >
+                                    {form.date}
+                                  </Text>
+                                </View>
+                              </Pressable>
+
+                              {presets.map((d, i) => {
+                                const active = form.date === d.date;
+                                return (
+                                  <Pressable
+                                    key={i}
+                                    onPress={() =>
+                                      setForm((p) => ({ ...p, date: d.date }))
+                                    }
+                                    className="items-center justify-center rounded-2xl border px-6 py-4"
+                                    style={{
+                                      borderColor: active
+                                        ? colors.primary
+                                        : colors.border,
+                                      backgroundColor: active
+                                        ? `${colors.primary}20`
+                                        : "transparent",
+                                      minWidth: 100,
+                                    }}
+                                  >
+                                    <Text
+                                      className="text-[10px] font-black uppercase"
+                                      style={{
+                                        color: active
+                                          ? colors.primary
+                                          : colors.textMuted,
+                                      }}
+                                    >
+                                      {d.label}
+                                    </Text>
+                                    <Text
+                                      className="mt-1 text-[10px] font-bold opacity-40"
+                                      style={{ color: colors.text }}
+                                    >
+                                      {d.date}
+                                    </Text>
+                                  </Pressable>
+                                );
+                              })}
+                            </>
+                          );
+                        })()}
+                      </View>
+                    </ScrollView>
+                  </View>
+
+                  <View className="mb-6">
+                    <Text
+                      className="mb-3 text-xs font-bold uppercase tracking-widest opacity-50"
+                      style={{ color: colors.text }}
+                    >
+                      Category
+                    </Text>
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                    >
+                      <View className="flex-row gap-3">
+                        {categories.map((category) => {
+                          const active = form.categoryId === category.id;
+                          return (
+                            <Pressable
+                              key={category.id}
+                              onPress={() =>
+                                setForm((p) => ({
+                                  ...p,
+                                  categoryId: category.id,
+                                }))
+                              }
+                              className="flex-row items-center rounded-2xl border px-5 h-12"
+                              style={{
+                                borderColor: active
+                                  ? colors.primary
+                                  : colors.border,
+                                backgroundColor: active
+                                  ? `${colors.primary}20`
+                                  : "transparent",
+                              }}
+                            >
+                              <Ionicons
+                                name={category.icon as any}
+                                size={16}
+                                color={
+                                  active ? colors.primary : colors.textMuted
+                                }
+                              />
+                              <Text
+                                className="ml-2 text-xs font-bold"
+                                style={{
+                                  color: active
+                                    ? colors.text
+                                    : colors.textMuted,
+                                }}
+                              >
+                                {category.name}
+                              </Text>
+                            </Pressable>
+                          );
+                        })}
+                      </View>
+                    </ScrollView>
+                  </View>
+
+                  <Field
+                    label="Note"
+                    value={form.note}
+                    onChangeText={(v: string) =>
+                      setForm((p) => ({ ...p, note: v }))
+                    }
+                    placeholder="What was this for?"
+                    colors={colors}
+                  />
+
+                  <Pressable
+                    onPress={submit}
+                    className="mt-6 h-16 items-center justify-center rounded-2xl"
+                    style={{ backgroundColor: colors.primary }}
+                  >
+                    <Text className="text-base font-black text-black uppercase tracking-widest">
+                      Complete Transaction
+                    </Text>
+                  </Pressable>
+                </View>
+              </MotiView>
+            )}
+          </AnimatePresence>
+
+          <View className="mb-6 flex-row items-center justify-between">
+            <Text className="text-xl font-bold" style={{ color: colors.text }}>
+              History
+            </Text>
+            <View
+              className="flex-row rounded-2xl bg-white/5 p-1"
+              style={{ width: "60%" }}
+            >
+              {(["all", "income", "expense"] as const).map((t) => (
+                <Pressable
+                  key={t}
+                  onPress={() => setFilter(t)}
+                  className="flex-1 rounded-xl py-2"
+                  style={{
+                    backgroundColor:
+                      filter === t ? colors.primary : "transparent",
+                  }}
+                >
+                  <Text
+                    className="text-center text-[10px] font-black"
+                    style={{ color: filter === t ? "#000" : colors.textMuted }}
+                  >
+                    {t.toUpperCase()}
+                  </Text>
                 </Pressable>
               ))}
             </View>
-
-            {loading ? (
-              <View className="mt-3 rounded-2xl border p-5" style={{ borderColor: colors.border, backgroundColor: `${colors.surface}CC` }}>
-                <Text style={{ color: colors.textMuted }}>Loading history...</Text>
-              </View>
-            ) : list.length === 0 ? (
-              <View className="mt-3 rounded-2xl border p-8" style={{ borderColor: colors.border, backgroundColor: `${colors.surface}CC` }}>
-                <Text className="text-center text-sm" style={{ color: colors.textMuted }}>Nothing here yet</Text>
-              </View>
-            ) : (
-              list.map((item, idx) => {
-                const category = categoryById(categories, item.categoryId);
-                const income = item.type === 'income';
-                return (
-                  <MotiView key={item.id} from={{ opacity: 0, translateY: 8 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', delay: idx * 40 }} className="mt-3 flex-row items-center justify-between rounded-2xl border px-4 py-3" style={{ borderColor: colors.border, backgroundColor: `${colors.surface}CC` }}>
-                    <View className="flex-row items-center gap-3">
-                      <View className="h-10 w-10 items-center justify-center rounded-xl" style={{ backgroundColor: `${category?.color ?? '#64748B'}22` }}>
-                        <Ionicons name={(category?.icon as never) ?? 'grid-outline'} size={16} color={category?.color ?? '#64748B'} />
-                      </View>
-                      <View>
-                        <Text className="text-base font-semibold" style={{ color: colors.text }}>{category?.name ?? 'Unknown'}</Text>
-                        <Text className="text-xs" style={{ color: colors.textMuted }}>{item.date}</Text>
-                      </View>
-                    </View>
-                    <Text className="text-base font-semibold" style={{ color: income ? '#6BCF7F' : '#FF6B6B' }}>{income ? '+' : '-'}{formatCurrency(item.amount)}</Text>
-                  </MotiView>
-                );
-              })
-            )}
           </View>
+
+          {loading ? (
+            <View className="h-40 items-center justify-center">
+              <Text style={{ color: colors.textMuted }}>Loading...</Text>
+            </View>
+          ) : list.length === 0 ? (
+            <View
+              className="h-60 items-center justify-center rounded-[32px] border border-dashed"
+              style={{ borderColor: colors.border }}
+            >
+              <Ionicons
+                name="receipt-outline"
+                size={48}
+                color={colors.border}
+              />
+              <Text
+                className="mt-4 text-sm font-medium"
+                style={{ color: colors.textMuted }}
+              >
+                Your financial history starts here
+              </Text>
+            </View>
+          ) : (
+            list.map((item, idx) => {
+              const category = categoryById(categories, item.categoryId);
+              const income = item.type === "income";
+              return (
+                <MotiView
+                  key={item.id}
+                  from={{ opacity: 0, translateY: 10 }}
+                  animate={{ opacity: 1, translateY: 0 }}
+                  transition={{ type: "timing", delay: idx * 50 }}
+                  className="mb-4 flex-row items-center justify-between rounded-[28px] border p-5"
+                  style={{
+                    borderColor: colors.border,
+                    backgroundColor: isDark ? "#121212" : "#FFFFFF",
+                  }}
+                >
+                  <View className="flex-row items-center gap-4">
+                    <View
+                      className="h-12 w-12 items-center justify-center rounded-2xl"
+                      style={{
+                        backgroundColor: isDark ? "#1C1C1E" : "#F1F5F9",
+                      }}
+                    >
+                      <Ionicons
+                        name={(category?.icon as any) || "receipt-outline"}
+                        size={20}
+                        color={isDark ? colors.primary : "#000"}
+                      />
+                    </View>
+                    <View>
+                      <Text
+                        className="text-base font-bold uppercase tracking-tight"
+                        style={{ color: colors.text }}
+                      >
+                        {category?.name || "General"}
+                      </Text>
+                      <Text
+                        className="text-xs font-medium"
+                        style={{ color: colors.textMuted }}
+                      >
+                        {item.date}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text
+                    className="text-lg font-black"
+                    style={{ color: income ? colors.primary : "#FF6492" }}
+                  >
+                    {income ? "+" : "-"}
+                    {formatCurrency(item.amount)}
+                  </Text>
+                </MotiView>
+              );
+            })
+          )}
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <CalendarModal
+        visible={showCalendar}
+        onClose={() => setShowCalendar(false)}
+        selectedDate={form.date}
+        onSelectDate={(d) => setForm((p) => ({ ...p, date: d }))}
+      />
     </View>
   );
 }
 
-function Field({ label, value, onChangeText, placeholder, error }: { label: string; value: string; onChangeText: (v: string) => void; placeholder: string; error?: string }) {
-  const { colors, isDark } = useAppTheme();
+function Field({
+  label,
+  value,
+  onChangeText,
+  placeholder,
+  error,
+  colors,
+  keyboardType,
+  editable = true,
+  onPress,
+}: any) {
   return (
-    <View className="mt-4">
-      <Text className="mb-2 text-sm font-medium" style={{ color: colors.text }}>{label}</Text>
-      <View className="h-11 justify-center rounded-xl border px-3" style={{ borderColor: error ? '#FF6B6B' : colors.border, backgroundColor: isDark ? '#171A24' : '#F8FAFC' }}>
-        <TextInput value={value} onChangeText={onChangeText} placeholder={placeholder} placeholderTextColor={colors.textMuted} style={{ color: colors.text }} />
+    <Pressable onPress={onPress} className="mb-4 flex-1">
+      <Text
+        className="mb-2 text-xs font-bold uppercase tracking-widest"
+        style={{ color: colors.textMuted }}
+      >
+        {label}
+      </Text>
+      <View
+        className="h-14 justify-center rounded-2xl border px-4"
+        style={{
+          borderColor: error ? "#FF6492" : colors.border,
+          backgroundColor: "rgba(255,255,255,0.02)",
+        }}
+      >
+        <TextInput
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor="rgba(155, 161, 166, 0.4)"
+          style={{ color: colors.text, fontSize: 16, fontWeight: "700" }}
+          keyboardType={keyboardType}
+          editable={editable}
+          pointerEvents={onPress ? "none" : "auto"}
+        />
       </View>
-      {error ? <Text className="mt-1 text-xs text-rose-400">{error}</Text> : null}
-    </View>
+      {error ? (
+        <Text className="mt-1 text-[10px] font-bold text-rose-400 uppercase ml-1">
+          {error}
+        </Text>
+      ) : null}
+    </Pressable>
   );
 }
