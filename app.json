@@ -13,7 +13,8 @@
       "backgroundColor": "#050608"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.shilpadadhich.payu"
     },
     "android": {
       "adaptiveIcon": {
@@ -21,7 +22,8 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.shilpadadhich.payu"
     },
     "web": {
       "favicon": "./assets/favicon.png"
