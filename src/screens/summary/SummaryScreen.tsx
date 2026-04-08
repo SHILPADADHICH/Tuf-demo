@@ -1,146 +1,183 @@
-import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
-import { ScrollView, Text, View } from 'react-native';
-import Svg, { Circle } from 'react-native-svg';
-
-import { AppHeader } from '@/components/common/AppHeader';
+import { ScrollView, Text, View, TouchableOpacity, Dimensions } from 'react-native';
+import Svg, { Circle, Rect } from 'react-native-svg';
 import { formatCurrency, useFinance } from '@/store/finance/FinanceProvider';
 import { useAppTheme } from '@/theme/ThemeProvider';
+
+const { width } = Dimensions.get('window');
 
 type SummaryScreenProps = { onToggleTheme: () => void };
 
 export function SummaryScreen({ onToggleTheme }: SummaryScreenProps) {
   const { colors, isDark } = useAppTheme();
-  const { loading, monthly } = useFinance();
+  const { monthly } = useFinance();
 
-  const totalFlow = monthly.income + monthly.expense;
-  const incomeRatio = totalFlow > 0 ? monthly.income / totalFlow : 0;
-  const expenseRatio = totalFlow > 0 ? monthly.expense / totalFlow : 0;
+  const spendingCategories = [
+    { id: '1', name: 'Food', percent: 31, amount: '₹8.7k', color: '#6366F1' },
+    { id: '2', name: 'Transport', percent: 11, amount: '₹4.4k', color: '#00D1A1' },
+    { id: '3', name: 'Health', percent: 17, amount: '₹3.1k', color: '#F59E0B' },
+    { id: '4', name: 'Other', percent: 41, amount: '₹7.3k', color: '#94A3B8' },
+  ];
+
+  const barData = [
+    { month: 'Nov', height: 40 },
+    { month: 'Dec', height: 60 },
+    { month: 'Jan', height: 80 },
+    { month: 'Feb', height: 50 },
+    { month: 'Mar', height: 70 },
+    { month: 'Apr', height: 90, active: true },
+  ];
+
+  const budget = 23480;
+  const target = 30000;
+  const budgetPercent = (budget / target) * 100;
 
   return (
     <View className="flex-1" style={{ backgroundColor: colors.background }}>
-      <AppHeader onToggleTheme={onToggleTheme} />
+      <ScrollView 
+        contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 60, paddingBottom: 100 }}
+        showsVerticalScrollIndicator={false}
+      >
+        <Text className="text-2xl font-bold" style={{ color: colors.text }}>Analytics</Text>
+        <Text className="text-sm font-medium mb-8" style={{ color: colors.textMuted }}>Your financial health</Text>
 
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 100 }}>
-        <Text className="text-3xl font-bold" style={{ color: colors.text }}>
-          Monthly Summary
-        </Text>
-        <Text className="mt-1 text-base" style={{ color: colors.textMuted }}>
-          Income, expenses, and remaining balance overview.
-        </Text>
-        <Text className="mt-1 text-xs uppercase tracking-wide" style={{ color: colors.textMuted }}>
-          {new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' })}
-        </Text>
+        {/* Month Selector */}
+        <View className="flex-row items-center justify-between mb-8">
+          <TouchableOpacity className="p-2">
+            <Ionicons name="chevron-back" size={20} color={colors.textMuted} />
+          </TouchableOpacity>
+          <Text className="text-base font-bold" style={{ color: colors.text }}>April 2026</Text>
+          <TouchableOpacity className="p-2">
+            <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+          </TouchableOpacity>
+        </View>
 
-        <LinearGradient
-          colors={isDark ? ['#111827', '#0B1220'] : ['#FFFFFF', '#EEF2FF']}
-          className="mt-5 rounded-3xl border p-5"
-          style={{ borderColor: colors.border }}
+        {/* Spending Breakdown Card */}
+        <View 
+          className="rounded-[32px] p-6 mb-8"
+          style={{ backgroundColor: colors.surface }}
         >
-          <View className="flex-row justify-between">
-            <Metric label="Income" value={formatCurrency(monthly.income)} color="#22C55E" />
-            <Metric label="Expenses" value={formatCurrency(monthly.expense)} color="#EF4444" />
-            <Metric label="Balance" value={formatCurrency(monthly.balance)} color="#60A5FA" />
-          </View>
-        </LinearGradient>
+          <Text className="text-xs font-bold uppercase tracking-widest mb-6" style={{ color: colors.textMuted }}>
+            Spending Breakdown
+          </Text>
 
-        {loading ? (
-          <View className="mt-5 items-center rounded-3xl border py-10" style={{ borderColor: colors.border }}>
-            <Text style={{ color: colors.textMuted }}>Loading monthly analytics...</Text>
-          </View>
-        ) : totalFlow === 0 ? (
-          <View className="mt-5 items-center rounded-3xl border px-6 py-10" style={{ borderColor: colors.border }}>
-            <Text className="text-base font-semibold" style={{ color: colors.text }}>
-              Nothing to summarize yet
-            </Text>
-            <Text className="mt-1 text-center text-sm" style={{ color: colors.textMuted }}>
-              Add income or expense entries from the Transactions tab to see charts here.
-            </Text>
-          </View>
-        ) : (
-          <MotiView
-            from={{ opacity: 0, scale: 0.96 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ type: 'timing', duration: 450 }}
-            className="mt-5 items-center rounded-3xl border py-6"
-            style={{ borderColor: colors.border }}
-          >
-            <DonutChart incomeRatio={incomeRatio} expenseRatio={expenseRatio} />
-            <View className="mt-5 w-full px-5">
-              <Legend name="Income" color="#22C55E" value={formatCurrency(monthly.income)} />
-              <Legend name="Expenses" color="#EF4444" value={formatCurrency(monthly.expense)} />
+          <View className="flex-row items-center justify-between">
+            <View className="items-center justify-center">
+              <DonutChart categories={spendingCategories} />
+              <View className="absolute items-center">
+                <Text className="text-xl font-bold" style={{ color: colors.text }}>₹23k</Text>
+                <Text className="text-[10px] uppercase font-bold" style={{ color: colors.textMuted }}>Spent</Text>
+              </View>
             </View>
-          </MotiView>
-        )}
+
+            <View className="flex-1 ml-8">
+              {spendingCategories.map((cat) => (
+                <View key={cat.id} className="flex-row items-center justify-between mb-3">
+                  <View className="flex-row items-center">
+                    <View className="h-2 w-2 rounded-full mr-2" style={{ backgroundColor: cat.color }} />
+                    <View>
+                      <Text className="text-xs font-bold" style={{ color: colors.text }}>{cat.name}</Text>
+                      <Text className="text-[10px]" style={{ color: colors.textMuted }}>{cat.percent}%</Text>
+                    </View>
+                  </View>
+                  <Text className="text-xs font-bold" style={{ color: colors.text }}>{cat.amount}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        </View>
+
+        {/* 6-Month Spending */}
+        <View 
+          className="rounded-[32px] p-6 mb-8"
+          style={{ backgroundColor: colors.surface }}
+        >
+          <Text className="text-xs font-bold uppercase tracking-widest mb-6" style={{ color: colors.textMuted }}>
+            6-Month Spending
+          </Text>
+
+          <View className="flex-row items-end justify-between h-32 px-2">
+            {barData.map((data, index) => (
+              <View key={index} className="items-center">
+                <View 
+                  className="w-8 rounded-lg"
+                  style={{ 
+                    height: data.height, 
+                    backgroundColor: data.active ? colors.primary : colors.surfaceMuted 
+                  }}
+                />
+                <Text className="text-[10px] font-bold mt-2" style={{ color: colors.textMuted }}>
+                  {data.month}
+                </Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        {/* Monthly Budget Card */}
+        <View 
+          className="rounded-[32px] p-6"
+          style={{ backgroundColor: colors.surface }}
+        >
+          <View className="flex-row items-center mb-6">
+            <View className="h-10 w-10 rounded-full bg-blue-100 items-center justify-center mr-4">
+              <View className="h-6 w-6 rounded-full border-2 border-primary items-center justify-center">
+                <View className="h-1 w-1 rounded-full bg-primary" />
+              </View>
+            </View>
+            <View>
+              <Text className="text-xs font-bold" style={{ color: colors.textMuted }}>Monthly Budget</Text>
+              <Text className="text-lg font-bold" style={{ color: colors.text }}>₹23,480</Text>
+              <Text className="text-[10px]" style={{ color: colors.textMuted }}>
+                ₹6,520 remaining of ₹{target / 1000}k
+              </Text>
+            </View>
+          </View>
+
+          <View className="w-full h-2 rounded-full overflow-hidden" style={{ backgroundColor: colors.surfaceMuted }}>
+            <View 
+              className="h-full rounded-full" 
+              style={{ backgroundColor: colors.primary, width: `${budgetPercent}%` }} 
+            />
+          </View>
+        </View>
       </ScrollView>
     </View>
   );
 }
 
-function DonutChart({ incomeRatio, expenseRatio }: { incomeRatio: number; expenseRatio: number }) {
-  const size = 170;
-  const stroke = 14;
+function DonutChart({ categories }: { categories: any[] }) {
+  const size = 120;
+  const stroke = 12;
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
+  
+  let currentOffset = 0;
 
   return (
-    <View className="items-center justify-center">
-      <Svg width={size} height={size}>
-        <Circle cx={size / 2} cy={size / 2} r={r} stroke="#1F2937" strokeWidth={stroke} fill="none" />
-        <Circle
-          cx={size / 2}
-          cy={size / 2}
-          r={r}
-          stroke="#22C55E"
-          strokeWidth={stroke}
-          fill="none"
-          strokeDasharray={`${c * incomeRatio} ${c}`}
-          strokeLinecap="round"
-          rotation="-90"
-          origin={`${size / 2}, ${size / 2}`}
-        />
-        <Circle
-          cx={size / 2}
-          cy={size / 2}
-          r={r}
-          stroke="#EF4444"
-          strokeWidth={stroke}
-          fill="none"
-          strokeDasharray={`${c * expenseRatio} ${c}`}
-          strokeDashoffset={-c * incomeRatio}
-          strokeLinecap="round"
-          rotation="-90"
-          origin={`${size / 2}, ${size / 2}`}
-        />
-      </Svg>
-      <View className="absolute items-center">
-        <Text className="text-xs text-slate-400">This Month</Text>
-      </View>
-    </View>
-  );
-}
-
-function Metric({ label, value, color }: { label: string; value: string; color: string }) {
-  return (
-    <View>
-      <Text className="text-xs" style={{ color: '#94A3B8' }}>
-        {label}
-      </Text>
-      <Text className="mt-1 text-base font-semibold" style={{ color }}>
-        {value}
-      </Text>
-    </View>
-  );
-}
-
-function Legend({ name, color, value }: { name: string; color: string; value: string }) {
-  return (
-    <View className="mt-2 flex-row items-center justify-between">
-      <View className="flex-row items-center">
-        <View className="h-3 w-3 rounded-full" style={{ backgroundColor: color }} />
-        <Text className="ml-2 text-sm text-slate-300">{name}</Text>
-      </View>
-      <Text className="text-sm text-slate-300">{value}</Text>
-    </View>
+    <Svg width={size} height={size}>
+      {categories.map((cat, i) => {
+        const strokeDasharray = `${(cat.percent / 100) * c} ${c}`;
+        const strokeDashoffset = -currentOffset;
+        currentOffset += (cat.percent / 100) * c;
+        
+        return (
+          <Circle
+            key={i}
+            cx={size / 2}
+            cy={size / 2}
+            r={r}
+            stroke={cat.color}
+            strokeWidth={stroke}
+            fill="none"
+            strokeDasharray={strokeDasharray}
+            strokeDashoffset={strokeDashoffset}
+            rotation="-90"
+            origin={`${size / 2}, ${size / 2}`}
+          />
+        );
+      })}
+    </Svg>
   );
 }

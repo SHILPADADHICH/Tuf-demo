@@ -1,97 +1,153 @@
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
-
-import { AppHeader } from '@/components/common/AppHeader';
-import { SegmentControl } from '@/components/common/SegmentControl';
+import { 
+  ScrollView, 
+  Text, 
+  View, 
+  Switch, 
+  TouchableOpacity 
+} from 'react-native';
 import { useAppTheme } from '@/theme/ThemeProvider';
 
 type ProfileScreenProps = { onToggleTheme: () => void };
 
 export function ProfileScreen({ onToggleTheme }: ProfileScreenProps) {
   const { colors, isDark } = useAppTheme();
-  const [mode, setMode] = useState<'preview' | 'edit'>('preview');
+  const [notifications, setNotifications] = useState(false);
 
   return (
     <View className="flex-1" style={{ backgroundColor: colors.background }}>
-      <AppHeader onToggleTheme={onToggleTheme} />
+      <ScrollView 
+        contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 60, paddingBottom: 100 }}
+        showsVerticalScrollIndicator={false}
+      >
+        <Text className="text-2xl font-bold mb-8" style={{ color: colors.text }}>Profile</Text>
 
-      <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 110 }}>
-          <View className="mb-5 flex-row items-center gap-3">
-            <View
-              className="h-9 w-9 items-center justify-center rounded-xl"
-              style={{ backgroundColor: isDark ? '#F3F4F6' : '#111827' }}
-            >
-              <Text style={{ color: isDark ? '#111827' : '#F3F4F6' }} className="font-bold">
-                P
-              </Text>
-            </View>
-            <Text className="text-3xl font-semibold" style={{ color: colors.text }}>
-              Alex Yu
-            </Text>
+        {/* Profile Card */}
+        <LinearGradient
+          colors={isDark ? ['#4F46E5', '#1E1B4B'] : ['#6366F1', '#3B82F6']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          className="rounded-[32px] p-6 mb-8 flex-row items-center"
+        >
+          <View 
+            className="h-16 w-16 rounded-full bg-white/20 items-center justify-center mr-6 border-2 border-white/30"
+          >
+            <Text className="text-white text-2xl font-bold">AS</Text>
           </View>
+          <View className="flex-1">
+            <Text className="text-white text-lg font-bold">Arjun Sharma</Text>
+            <Text className="text-white/70 text-xs mb-2">arjun.sharma@gmail.com</Text>
+            <View className="bg-white/20 self-start px-3 py-1 rounded-full border border-white/30">
+              <Text className="text-white text-[10px] font-bold">Premium Member</Text>
+            </View>
+          </View>
+        </LinearGradient>
 
-          <SegmentControl
-            options={[
-              { label: 'Preview', value: 'preview' },
-              { label: 'Edit', value: 'edit' },
-            ]}
-            value={mode}
-            onChange={setMode}
+        {/* Stats Row */}
+        <View className="flex-row justify-between mb-8">
+          <StatCard label="Net Worth" value="₹1.84L" colors={colors} />
+          <StatCard label="Savings Rate" value="62%" highlight colors={colors} />
+        </View>
+
+        {/* Settings List */}
+        <View className="rounded-[32px] p-4" style={{ backgroundColor: colors.surface }}>
+          <SettingItem 
+            icon="moon-outline" 
+            label="Dark Mode" 
+            value={isDark} 
+            onValueChange={onToggleTheme}
+            type="toggle"
+            colors={colors}
           />
-
-          {mode === 'preview' ? (
-            <View className="mt-7 gap-5">
-              <Text className="text-xl" style={{ color: colors.textMuted }}>
-                Total spendings: <Text style={{ color: colors.text, fontWeight: '700' }}>$2,000</Text>
-              </Text>
-              <Text className="text-xl" style={{ color: colors.textMuted }}>
-                Email: <Text style={{ color: colors.text, fontWeight: '700' }}>alex@gmail.com</Text>
-              </Text>
-              <Text className="text-xl" style={{ color: colors.textMuted }}>
-                Balance: <Text style={{ color: colors.text, fontWeight: '700' }}>$20,000</Text>
-              </Text>
-            </View>
-          ) : (
-            <View className="mt-5">
-              <Input label="Full Name" placeholder="Enter your full name" />
-              <Input label="Email" placeholder="Enter your email" />
-              <Input label="Password" placeholder="Create a password" />
-              <Input label="Confirm Password" placeholder="Confirm your password" />
-
-              <Pressable className="mt-6 rounded-xl py-3.5" style={{ backgroundColor: colors.primary }}>
-                <Text className="text-center text-lg font-semibold" style={{ color: isDark ? '#111827' : '#FFFFFF' }}>
-                  Update Details
-                </Text>
-              </Pressable>
-            </View>
-          )}
-        </ScrollView>
-      </KeyboardAvoidingView>
+          <SettingItem 
+            icon="notifications-outline" 
+            label="Notifications" 
+            value={notifications} 
+            onValueChange={setNotifications}
+            type="toggle"
+            colors={colors}
+          />
+          <SettingItem 
+            icon="wallet-outline" 
+            label="Monthly Budget" 
+            rightText="₹32,000"
+            colors={colors}
+          />
+          <SettingItem 
+            icon="lock-closed-outline" 
+            label="Privacy & Security" 
+            colors={colors}
+          />
+          <SettingItem 
+            icon="download-outline" 
+            label="Export Data" 
+            colors={colors}
+          />
+          <SettingItem 
+            icon="log-out-outline" 
+            label="Sign Out" 
+            labelStyle={{ color: colors.danger }}
+            colors={colors}
+            hideBorder
+          />
+        </View>
+      </ScrollView>
     </View>
   );
 }
 
-type InputProps = { label: string; placeholder: string };
-
-function Input({ label, placeholder }: InputProps) {
-  const { colors, isDark } = useAppTheme();
-
+function StatCard({ label, value, highlight, colors }: any) {
   return (
-    <View className="mt-4">
-      <Text className="mb-2 text-sm font-medium" style={{ color: colors.text }}>
-        {label}
-      </Text>
-      <View
-        className="h-12 rounded-xl border px-3"
-        style={{ borderColor: colors.border, backgroundColor: isDark ? '#161A20' : '#F8FAFC' }}
-      >
-        <TextInput
-          placeholder={placeholder}
-          placeholderTextColor={colors.textMuted}
-          style={{ color: colors.text, flex: 1, fontSize: 16 }}
-        />
-      </View>
+    <View 
+      className="flex-1 rounded-3xl p-5 mx-1"
+      style={{ backgroundColor: colors.surface }}
+    >
+      <Text className="text-[10px] font-bold uppercase mb-1" style={{ color: colors.textMuted }}>{label}</Text>
+      <Text className="text-lg font-bold" style={{ color: highlight ? colors.success : colors.text }}>{value}</Text>
     </View>
+  );
+}
+
+function SettingItem({ 
+  icon, 
+  label, 
+  value, 
+  onValueChange, 
+  type = 'link', 
+  rightText,
+  labelStyle,
+  colors,
+  hideBorder
+}: any) {
+  return (
+    <TouchableOpacity 
+      activeOpacity={0.7}
+      className={`flex-row items-center py-4 px-2 ${!hideBorder ? 'border-b' : ''}`}
+      style={{ borderBottomColor: colors.border }}
+    >
+      <View className="h-10 w-10 rounded-2xl bg-slate-100 items-center justify-center mr-4" style={{ backgroundColor: colors.surfaceMuted }}>
+        <Ionicons name={icon} size={20} color={labelStyle?.color || colors.primary} />
+      </View>
+      
+      <Text className="flex-1 text-sm font-bold" style={labelStyle || { color: colors.text }}>{label}</Text>
+      
+      {type === 'toggle' ? (
+        <Switch 
+          value={value} 
+          onValueChange={onValueChange}
+          trackColor={{ false: '#767577', true: colors.primary }}
+          thumbColor={value ? '#FFFFFF' : '#f4f3f4'}
+        />
+      ) : (
+        <View className="flex-row items-center">
+          {rightText && (
+            <Text className="text-xs font-bold mr-2" style={{ color: colors.textMuted }}>{rightText}</Text>
+          )}
+          <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+        </View>
+      )}
+    </TouchableOpacity>
   );
 }

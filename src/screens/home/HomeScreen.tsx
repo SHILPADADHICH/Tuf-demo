@@ -1,18 +1,16 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MotiView, MotiText } from 'moti';
-import { useState } from 'react';
-import {
-  Dimensions,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-  TouchableOpacity,
+import { 
+  Dimensions, 
+  ScrollView, 
+  StyleSheet, 
+  Text, 
+  View, 
+  TouchableOpacity, 
+  Image,
+  FlatList
 } from 'react-native';
-import Svg, { Circle } from 'react-native-svg';
-
 import { useFinance, formatCurrency, categoryById } from '@/store/finance/FinanceProvider';
 import { useAppTheme } from '@/theme/ThemeProvider';
 
@@ -22,169 +20,159 @@ type HomeScreenProps = { onToggleTheme: () => void };
 
 export function HomeScreen({ onToggleTheme }: HomeScreenProps) {
   const { colors, isDark } = useAppTheme();
-  const { loading, total, monthly, transactions, categories } = useFinance();
+  const { transactions, total, categories, monthly } = useFinance();
 
-  const budget = 3000;
-  const progressPercent = Math.min((monthly.expense / budget) * 100, 100);
+  // Mock data for quick actions
+  const quickActions = [
+    { id: 'add', icon: 'add-outline', label: 'Add', color: '#6366F1' },
+    { id: 'send', icon: 'arrow-forward-outline', label: 'Send', color: '#6366F1' },
+    { id: 'request', icon: 'arrow-back-outline', label: 'Request', color: '#6366F1' },
+    { id: 'history', icon: 'time-outline', label: 'History', color: '#6366F1' },
+  ];
+
+  const recentTransactions = transactions.slice(0, 4);
 
   return (
     <View className="flex-1" style={{ backgroundColor: colors.background }}>
       <ScrollView 
-        contentContainerStyle={{ paddingBottom: 120, paddingTop: 60 }}
+        contentContainerStyle={{ paddingBottom: 100, paddingTop: 60 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header Section */}
+        {/* Header */}
         <View className="flex-row items-center justify-between px-6 mb-8">
           <View>
-            <Text className="text-base text-gray-500 font-medium">Welcome back,</Text>
-            <Text className="text-3xl font-extrabold" style={{ color: colors.text }}>Alex Johnson</Text>
+            <Text className="text-sm font-medium" style={{ color: colors.textMuted }}>Good morning</Text>
+            <Text className="text-2xl font-bold" style={{ color: colors.text }}>Arjun Sharma</Text>
           </View>
-          <View className="flex-row items-center gap-3">
-            <HeaderButton icon="search-outline" />
-            <HeaderButton icon="notifications-outline" badge={3} />
+          <View 
+            className="h-12 w-12 rounded-full items-center justify-center" 
+            style={{ backgroundColor: colors.primary }}
+          >
+            <Text className="text-white font-bold text-lg">AS</Text>
           </View>
         </View>
 
-        {/* High-Fidelity Balance Card */}
-        <View className="px-5 mb-8">
+        {/* Balance Card */}
+        <View className="px-6 mb-8">
           <LinearGradient
-            colors={['#7C3AED', '#3B82F6', '#0EA5E9']}
+            colors={isDark ? ['#4F46E5', '#1E1B4B'] : ['#6366F1', '#3B82F6']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            className="rounded-[40px] p-8 shadow-2xl"
+            className="rounded-[32px] p-6 shadow-lg"
           >
-            <Text className="text-white/80 text-sm font-semibold mb-2">Total Balance</Text>
-            <Text className="text-white text-5xl font-black mb-8">
-              {formatCurrency(total.balance)}
+            <Text className="text-white/80 text-xs font-semibold uppercase tracking-wider mb-2">Total Balance</Text>
+            <Text className="text-white text-4xl font-bold mb-8">
+              ₹1,84,520
             </Text>
 
-            <View className="flex-row gap-4">
-              <BalanceSubCard 
-                label="Income" 
-                amount={total.income} 
-                icon="arrow-up-thin" 
-                iconBg="rgba(255,255,255,0.15)"
-                iconColor="#4ADE80"
-              />
-              <BalanceSubCard 
-                label="Expenses" 
-                amount={total.expense} 
-                icon="arrow-down-thin" 
-                iconBg="rgba(255,255,255,0.15)"
-                iconColor="#F87171"
-              />
+            <View className="flex-row justify-between">
+              <View className="flex-row items-center">
+                <View className="h-8 w-8 rounded-full items-center justify-center bg-white/20 mr-3">
+                  <Ionicons name="arrow-down-outline" size={16} color="white" />
+                </View>
+                <View>
+                  <Text className="text-white/60 text-[10px] font-bold uppercase">Income</Text>
+                  <Text className="text-white text-base font-bold">₹62,000</Text>
+                </View>
+              </View>
+
+              <View className="flex-row items-center">
+                <View className="h-8 w-8 rounded-full items-center justify-center bg-white/20 mr-3">
+                  <Ionicons name="arrow-up-outline" size={16} color="white" />
+                </View>
+                <View>
+                  <Text className="text-white/60 text-[10px] font-bold uppercase">Expenses</Text>
+                  <Text className="text-white text-base font-bold">₹23,480</Text>
+                </View>
+              </View>
             </View>
           </LinearGradient>
         </View>
 
-        {/* Spending Card with Circular Progress */}
-        <View className="px-5">
-          <View 
-            className="rounded-[40px] p-8"
-            style={{ 
-              backgroundColor: isDark ? '#111418' : '#FFFFFF',
-              shadowColor: '#000',
-              shadowOpacity: 0.05,
-              shadowRadius: 20,
-              elevation: 4
-            }}
-          >
-            <View className="flex-row justify-between mb-8">
-              <View>
-                <Text className="text-gray-500 text-sm font-bold mb-1">Spending This Month</Text>
-                <Text className="text-3xl font-black" style={{ color: colors.text }}>
-                  {formatCurrency(monthly.expense)}
-                </Text>
+        {/* Quick Actions */}
+        <View className="flex-row justify-between px-6 mb-8">
+          {quickActions.map((action) => (
+            <TouchableOpacity key={action.id} className="items-center">
+              <View 
+                className="h-16 w-16 rounded-[24px] items-center justify-center mb-2"
+                style={{ 
+                  backgroundColor: isDark ? colors.surface : '#FFFFFF',
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 10,
+                  elevation: 4
+                }}
+              >
+                <Ionicons name={action.icon as any} size={24} color={colors.textMuted} />
               </View>
-              <View className="items-end">
-                <Text className="text-gray-500 text-sm font-bold mb-1">Budget</Text>
-                <Text className="text-3xl font-black" style={{ color: colors.text }}>
-                  {formatCurrency(budget)}
-                </Text>
-              </View>
-            </View>
+              <Text className="text-xs font-medium" style={{ color: colors.textMuted }}>{action.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
 
-            <View className="items-center justify-center">
-              <CircularProgress percentage={progressPercent} />
-              <View className="absolute items-center">
-                <Text className="text-4xl font-black" style={{ color: colors.text }}>{Math.round(progressPercent)}%</Text>
-                <Text className="text-xs font-bold text-gray-500 uppercase">Used</Text>
-              </View>
-            </View>
+        {/* Recent Transactions */}
+        <View className="px-6">
+          <View className="flex-row items-center justify-between mb-4">
+            <Text className="text-xl font-bold" style={{ color: colors.text }}>Transactions</Text>
+            <TouchableOpacity>
+              <Text className="text-sm font-bold" style={{ color: colors.primary }}>See all</Text>
+            </TouchableOpacity>
           </View>
+
+          {recentTransactions.length > 0 ? (
+            recentTransactions.map((tx, idx) => (
+              <TransactionItem key={tx.id} item={tx} index={idx} colors={colors} categories={categories} />
+            ))
+          ) : (
+            <View className="p-8 items-center bg-surface rounded-3xl" style={{ backgroundColor: colors.surface }}>
+              <Ionicons name="receipt-outline" size={40} color={colors.textMuted} />
+              <Text className="mt-2 text-sm font-medium" style={{ color: colors.textMuted }}>No transactions yet</Text>
+            </View>
+          )}
         </View>
       </ScrollView>
+
+      {/* Floating Add Button helper (optional) */}
+      <TouchableOpacity 
+        className="absolute bottom-6 right-6 h-16 w-16 rounded-full items-center justify-center shadow-2xl"
+        style={{ backgroundColor: colors.primary, elevation: 10 }}
+      >
+        <Ionicons name="add" size={32} color="white" />
+      </TouchableOpacity>
     </View>
   );
 }
 
-function HeaderButton({ icon, badge }: { icon: any, badge?: number }) {
-  const { colors, isDark } = useAppTheme();
-  return (
-    <View 
-      className="h-14 w-14 items-center justify-center rounded-2xl border"
-      style={{ 
-        backgroundColor: isDark ? '#1F242B' : '#F9FAFB',
-        borderColor: colors.border
-      }}
-    >
-      <Ionicons name={icon} size={24} color={colors.text} />
-      {badge ? (
-        <View className="absolute -right-1 -top-1 h-6 w-6 items-center justify-center rounded-full bg-rose-500 border-2" style={{ borderColor: 'white' }}>
-          <Text className="text-[10px] font-black text-white">{badge}</Text>
-        </View>
-      ) : null}
-    </View>
-  );
-}
+function TransactionItem({ item, index, colors, categories }: any) {
+  const category = categoryById(categories, item.categoryId);
+  const isIncome = item.type === 'income';
 
-function BalanceSubCard({ label, amount, icon, iconBg, iconColor }: any) {
   return (
-    <View 
-      className="flex-1 p-5 rounded-[30px]"
-      style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
+    <MotiView 
+      from={{ opacity: 0, translateY: 20 }}
+      animate={{ opacity: 1, translateY: 0 }}
+      transition={{ delay: index * 100 }}
+      className="flex-row items-center p-4 rounded-3xl mb-3"
+      style={{ backgroundColor: colors.surface }}
     >
       <View 
-        className="h-10 w-10 items-center justify-center rounded-full mb-3"
-        style={{ backgroundColor: iconBg }}
+        className="h-12 w-12 rounded-2xl items-center justify-center mr-4"
+        style={{ backgroundColor: category?.color || colors.primary + '20' }}
       >
-        <MaterialCommunityIcons name={icon} size={24} color={iconColor} />
+        <Ionicons name={(category?.icon || 'card-outline') as any} size={22} color="white" />
       </View>
-      <Text className="text-white/70 text-xs font-bold mb-2">{label}</Text>
-      <Text className="text-white text-xl font-black">{formatCurrency(amount)}</Text>
-    </View>
-  );
-}
+      
+      <View className="flex-1">
+        <Text className="text-base font-bold" style={{ color: colors.text }}>{item.title}</Text>
+        <Text className="text-xs font-medium" style={{ color: colors.textMuted }}>
+          {category?.name || 'Uncategorized'} • {new Date(item.date).toLocaleDateString()}
+        </Text>
+      </View>
 
-function CircularProgress({ percentage }: { percentage: number }) {
-  const size = 180;
-  const strokeWidth = 16;
-  const radius = (size - strokeWidth) / 2;
-  const circumference = radius * 2 * Math.PI;
-  const strokeDashoffset = circumference - (percentage / 100) * circumference;
-
-  return (
-    <Svg width={size} height={size}>
-      <Circle
-        cx={size / 2}
-        cy={size / 2}
-        r={radius}
-        stroke="#F3F4F6"
-        strokeWidth={strokeWidth}
-        fill="none"
-      />
-      <Circle
-        cx={size / 2}
-        cy={size / 2}
-        r={radius}
-        stroke="#4F46E5"
-        strokeWidth={strokeWidth}
-        strokeDasharray={circumference}
-        strokeDashoffset={strokeDashoffset}
-        strokeLinecap="round"
-        fill="none"
-        transform={`rotate(-90 ${size / 2} ${size / 2})`}
-      />
-    </Svg>
+      <Text className={`text-base font-bold ${isIncome ? 'text-green-500' : 'text-red-500'}`}>
+        {isIncome ? '+' : '-'}{formatCurrency(item.amount)}
+      </Text>
+    </MotiView>
   );
 }
