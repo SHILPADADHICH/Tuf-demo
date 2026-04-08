@@ -1,182 +1,180 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { MotiView } from 'moti';
 import { useMemo, useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Text,
-  TextInput,
-  View,
-  TouchableOpacity,
-  Dimensions
-} from 'react-native';
-import { categoryById, formatCurrency, useFinance } from '@/store/finance/FinanceProvider';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+
+import { GradientOrbs } from '@/components/common/GradientOrbs';
+import { categoryById, filterByType, formatCurrency, useFinance } from '@/store/finance/FinanceProvider';
 import { useAppTheme } from '@/theme/ThemeProvider';
 import type { TransactionInput } from '@/types/finance';
 
-const { width } = Dimensions.get('window');
-
 type TransactionsScreenProps = { onToggleTheme: () => void };
+type FilterType = 'all' | 'income' | 'expense';
+type FieldErrors = Partial<Record<'amount' | 'categoryId' | 'date', string>>;
+
+const today = () => new Date().toISOString().slice(0, 10);
 
 export function TransactionsScreen({ onToggleTheme }: TransactionsScreenProps) {
   const { colors, isDark } = useAppTheme();
-  const { categories, addTransaction } = useFinance();
-  
-  const [type, setType] = useState<'income' | 'expense'>('expense');
-  const [amount, setAmount] = useState('2,400');
-  const [categoryId, setCategoryId] = useState('food');
-  const [date, setDate] = useState('Apr 08, 2026');
-  const [account, setAccount] = useState('HDFC Savings');
-  const [note, setNote] = useState('');
+  const { loading, categories, transactions, addCategory, addTransaction } = useFinance();
+  const [filter, setFilter] = useState<FilterType>('all');
+  const [customCategory, setCustomCategory] = useState('');
+  const [errors, setErrors] = useState<FieldErrors>({});
+  const [form, setForm] = useState<TransactionInput>({ type: 'expense', amount: '', categoryId: 'food', date: today(), note: '' });
 
-  const handleSave = () => {
-    addTransaction({
-      amount: parseFloat(amount.replace(/,/g, '')),
-      categoryId,
-      date: new Date().toISOString(),
-      note,
-      type,
-    });
+  const list = useMemo(() => {
+    if (filter === 'all') return transactions;
+    return filterByType(transactions, filter);
+  }, [filter, transactions]);
+
+  const submit = () => {
+    const nextErrors: FieldErrors = {};
+    const amount = Number(form.amount);
+    if (!form.amount || Number.isNaN(amount) || amount <= 0) nextErrors.amount = 'Amount should be greater than 0';
+    if (!form.categoryId) nextErrors.categoryId = 'Please select a category';
+    if (!form.date || Number.isNaN(new Date(form.date).getTime())) nextErrors.date = 'Date format should be YYYY-MM-DD';
+
+    if (Object.keys(nextErrors).length) {
+      setErrors(nextErrors);
+      return;
+    }
+
+    addTransaction({ amount, categoryId: form.categoryId, date: form.date, note: form.note.trim(), type: form.type });
+    setErrors({});
+    setForm((prev) => ({ ...prev, amount: '', note: '' }));
   };
 
   return (
     <View className="flex-1" style={{ backgroundColor: colors.background }}>
-      <ScrollView 
-        contentContainerStyle={{ paddingBottom: 120 }}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Top Balance Card Section */}
-        <View className="pt-16 px-6 pb-12 overflow-hidden">
-          <LinearGradient
-            colors={isDark ? ['#1A1C2E', '#0D0F16'] : ['#E0E7FF', '#F1F5F9']}
-            className="rounded-[40px] p-8"
-          >
-            <Text className="text-center text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: colors.textMuted }}>
-              Total Balance
-            </Text>
-            <Text className="text-center text-4xl font-bold" style={{ color: colors.text }}>
-              ₹1,84,520
-            </Text>
+      <GradientOrbs />
+      <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 56, paddingBottom: 120 }}>
+          <View className="mb-5 flex-row items-center justify-between">
+            <Text className="text-3xl font-bold" style={{ color: colors.text }}>Transactions</Text>
+            <View className="flex-row gap-3">
+              <Pressable onPress={onToggleTheme} className="h-11 w-11 items-center justify-center rounded-2xl border" style={{ borderColor: colors.border, backgroundColor: `${colors.surface}CC` }}>
+                <Ionicons name="moon-outline" size={19} color={colors.text} />
+              </Pressable>
+              <Pressable className="h-11 w-11 items-center justify-center rounded-2xl border" style={{ borderColor: colors.border, backgroundColor: `${colors.surface}CC` }}>
+                <Ionicons name="options-outline" size={19} color={colors.text} />
+              </Pressable>
+            </View>
+          </View>
+
+          <LinearGradient colors={isDark ? ['#161824', '#0E1018'] : ['#FFFFFF', '#EEF2FF']} className="rounded-3xl border p-4" style={{ borderColor: colors.border }}>
+            <Text className="text-lg font-semibold" style={{ color: colors.text }}>Add Transaction</Text>
+            <View className="mt-3 flex-row rounded-2xl p-1" style={{ backgroundColor: isDark ? '#232633' : '#E2E8F0' }}>
+              {(['expense', 'income'] as const).map((t) => {
+                const active = form.type === t;
+                return (
+                  <Pressable key={t} onPress={() => setForm((p) => ({ ...p, type: t }))} className="flex-1 rounded-xl py-2.5" style={{ backgroundColor: active ? '#7C3AED' : 'transparent' }}>
+                    <Text className="text-center text-sm font-semibold" style={{ color: active ? '#fff' : colors.textMuted }}>{t[0].toUpperCase() + t.slice(1)}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            <Field label="Amount" value={form.amount} onChangeText={(v) => setForm((p) => ({ ...p, amount: v }))} placeholder="e.g. 1200" error={errors.amount} />
+            <Field label="Date (YYYY-MM-DD)" value={form.date} onChangeText={(v) => setForm((p) => ({ ...p, date: v }))} placeholder="2026-04-08" error={errors.date} />
+            <Field label="Note" value={form.note} onChangeText={(v) => setForm((p) => ({ ...p, note: v }))} placeholder="Optional note" />
+
+            <Text className="mb-2 mt-4 text-sm font-medium" style={{ color: colors.text }}>Category</Text>
+            <View className="flex-row flex-wrap gap-2">
+              {categories.map((category) => {
+                const active = form.categoryId === category.id;
+                return (
+                  <Pressable
+                    key={category.id}
+                    onPress={() => setForm((p) => ({ ...p, categoryId: category.id }))}
+                    className="flex-row items-center rounded-full border px-3 py-2"
+                    style={{ borderColor: active ? category.color : colors.border, backgroundColor: active ? `${category.color}20` : `${colors.surface}99` }}
+                  >
+                    <Ionicons name={category.icon as never} size={13} color={category.color} />
+                    <Text className="ml-1 text-xs font-medium" style={{ color: colors.text }}>{category.name}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            <View className="mt-4 flex-row gap-2">
+              <View className="h-11 flex-1 justify-center rounded-xl border px-3" style={{ borderColor: colors.border, backgroundColor: `${colors.surface}CC` }}>
+                <TextInput value={customCategory} onChangeText={setCustomCategory} placeholder="Custom category" placeholderTextColor={colors.textMuted} style={{ color: colors.text }} />
+              </View>
+              <Pressable
+                disabled={!customCategory.trim()}
+                onPress={() => {
+                  const id = addCategory(customCategory);
+                  if (id) {
+                    setForm((p) => ({ ...p, categoryId: id }));
+                    setCustomCategory('');
+                  }
+                }}
+                className="rounded-xl px-4"
+                style={{ justifyContent: 'center', backgroundColor: customCategory.trim() ? '#7C3AED' : isDark ? '#334155' : '#CBD5E1' }}
+              >
+                <Text className="font-semibold text-white">Add</Text>
+              </Pressable>
+            </View>
+
+            <Pressable onPress={submit} className="mt-5 rounded-xl py-3.5" style={{ backgroundColor: '#7C3AED' }}>
+              <Text className="text-center text-base font-semibold text-white">Save Transaction</Text>
+            </Pressable>
           </LinearGradient>
-        </View>
 
-        {/* New Transaction Form */}
-        <View 
-          className="flex-1 rounded-t-[48px] px-6 pt-8 -mt-8"
-          style={{ backgroundColor: isDark ? '#1A1D27' : '#FFFFFF', minHeight: 600 }}
-        >
-          {/* Handle bar */}
-          <View className="w-12 h-1 rounded-full bg-slate-400/30 self-center mb-8" />
-          
-          <Text className="text-2xl font-bold mb-6" style={{ color: colors.text }}>New Transaction</Text>
-
-          {/* Type Toggle */}
-          <View className="flex-row bg-slate-100 p-1.5 rounded-3xl mb-8" style={{ backgroundColor: colors.surfaceMuted }}>
-            <TouchableOpacity 
-              onPress={() => setType('income')}
-              className={`flex-1 py-3 items-center rounded-2xl ${type === 'income' ? 'bg-white shadow-sm' : ''}`}
-            >
-              <Text className={`text-sm font-bold ${type === 'income' ? 'text-black' : 'text-slate-500'}`}>Income</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              onPress={() => setType('expense')}
-              className={`flex-1 py-3 items-center rounded-2xl ${type === 'expense' ? 'bg-indigo-600 shadow-md' : ''}`}
-              style={type === 'expense' ? { backgroundColor: colors.primary } : {}}
-            >
-              <Text className={`text-sm font-bold ${type === 'expense' ? 'text-white' : 'text-slate-500'}`}>Expense</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Amount Display */}
-          <View className="items-center mb-8">
-            <View className="flex-row items-center">
-              <Text className="text-3xl font-bold mr-2" style={{ color: colors.text }}>₹</Text>
-              <TextInput 
-                value={amount}
-                onChangeText={setAmount}
-                keyboardType="numeric"
-                className="text-4xl font-bold"
-                style={{ color: colors.text }}
-              />
+          <View className="mt-6">
+            <View className="mb-2 flex-row rounded-2xl p-1" style={{ backgroundColor: isDark ? '#1E2230' : '#E2E8F0' }}>
+              {(['all', 'income', 'expense'] as const).map((t) => (
+                <Pressable key={t} onPress={() => setFilter(t)} className="flex-1 rounded-xl py-2" style={{ backgroundColor: filter === t ? '#7C3AED' : 'transparent' }}>
+                  <Text className="text-center text-xs font-semibold" style={{ color: filter === t ? '#fff' : colors.textMuted }}>{t.toUpperCase()}</Text>
+                </Pressable>
+              ))}
             </View>
+
+            {loading ? (
+              <View className="mt-3 rounded-2xl border p-5" style={{ borderColor: colors.border, backgroundColor: `${colors.surface}CC` }}>
+                <Text style={{ color: colors.textMuted }}>Loading history...</Text>
+              </View>
+            ) : list.length === 0 ? (
+              <View className="mt-3 rounded-2xl border p-8" style={{ borderColor: colors.border, backgroundColor: `${colors.surface}CC` }}>
+                <Text className="text-center text-sm" style={{ color: colors.textMuted }}>Nothing here yet</Text>
+              </View>
+            ) : (
+              list.map((item, idx) => {
+                const category = categoryById(categories, item.categoryId);
+                const income = item.type === 'income';
+                return (
+                  <MotiView key={item.id} from={{ opacity: 0, translateY: 8 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', delay: idx * 40 }} className="mt-3 flex-row items-center justify-between rounded-2xl border px-4 py-3" style={{ borderColor: colors.border, backgroundColor: `${colors.surface}CC` }}>
+                    <View className="flex-row items-center gap-3">
+                      <View className="h-10 w-10 items-center justify-center rounded-xl" style={{ backgroundColor: `${category?.color ?? '#64748B'}22` }}>
+                        <Ionicons name={(category?.icon as never) ?? 'grid-outline'} size={16} color={category?.color ?? '#64748B'} />
+                      </View>
+                      <View>
+                        <Text className="text-base font-semibold" style={{ color: colors.text }}>{category?.name ?? 'Unknown'}</Text>
+                        <Text className="text-xs" style={{ color: colors.textMuted }}>{item.date}</Text>
+                      </View>
+                    </View>
+                    <Text className="text-base font-semibold" style={{ color: income ? '#6BCF7F' : '#FF6B6B' }}>{income ? '+' : '-'}{formatCurrency(item.amount)}</Text>
+                  </MotiView>
+                );
+              })
+            )}
           </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
+  );
+}
 
-          {/* Category Icons Row */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-8 -mx-6 px-6">
-            {categories.map((cat) => (
-              <TouchableOpacity 
-                key={cat.id} 
-                onPress={() => setCategoryId(cat.id)}
-                className="items-center mr-6"
-              >
-                <View 
-                  className="h-14 w-14 rounded-2xl items-center justify-center mb-2"
-                  style={{ 
-                    backgroundColor: categoryId === cat.id ? colors.primary : colors.surfaceMuted,
-                    shadowColor: colors.primary,
-                    shadowOpacity: categoryId === cat.id ? 0.3 : 0,
-                    shadowRadius: 10,
-                  }}
-                >
-                  <Ionicons 
-                    name={cat.icon as any} 
-                    size={24} 
-                    color={categoryId === cat.id ? 'white' : colors.textMuted} 
-                  />
-                </View>
-                <Text className="text-[10px] font-bold" style={{ color: categoryId === cat.id ? colors.text : colors.textMuted }}>
-                  {cat.name}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-
-          {/* Meta Data Grid */}
-          <View className="flex-row mb-6 gap-4">
-            <View className="flex-1">
-              <Text className="text-[10px] font-bold uppercase mb-2" style={{ color: colors.textMuted }}>Date</Text>
-              <TouchableOpacity 
-                className="p-4 rounded-2xl flex-row items-center justify-between"
-                style={{ backgroundColor: colors.surfaceMuted }}
-              >
-                <Text className="text-xs font-bold" style={{ color: colors.text }}>{date}</Text>
-              </TouchableOpacity>
-            </View>
-            <View className="flex-1">
-              <Text className="text-[10px] font-bold uppercase mb-2" style={{ color: colors.textMuted }}>Account</Text>
-              <TouchableOpacity 
-                className="p-4 rounded-2xl flex-row items-center justify-between"
-                style={{ backgroundColor: colors.surfaceMuted }}
-              >
-                <Text className="text-xs font-bold" style={{ color: colors.text }}>{account}</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Note Input */}
-          <View className="mb-8">
-            <Text className="text-[10px] font-bold uppercase mb-2" style={{ color: colors.textMuted }}>Note</Text>
-            <TextInput 
-              placeholder="Add a note..."
-              placeholderTextColor={colors.textMuted}
-              value={note}
-              onChangeText={setNote}
-              className="p-4 rounded-2xl text-xs font-bold"
-              style={{ backgroundColor: colors.surfaceMuted, color: colors.text }}
-            />
-          </View>
-
-          {/* Save Button */}
-          <TouchableOpacity 
-            onPress={handleSave}
-            className="rounded-[24px] py-5 items-center shadow-lg"
-            style={{ backgroundColor: colors.primary }}
-          >
-            <Text className="text-white text-base font-bold">Save Transaction</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+function Field({ label, value, onChangeText, placeholder, error }: { label: string; value: string; onChangeText: (v: string) => void; placeholder: string; error?: string }) {
+  const { colors, isDark } = useAppTheme();
+  return (
+    <View className="mt-4">
+      <Text className="mb-2 text-sm font-medium" style={{ color: colors.text }}>{label}</Text>
+      <View className="h-11 justify-center rounded-xl border px-3" style={{ borderColor: error ? '#FF6B6B' : colors.border, backgroundColor: isDark ? '#171A24' : '#F8FAFC' }}>
+        <TextInput value={value} onChangeText={onChangeText} placeholder={placeholder} placeholderTextColor={colors.textMuted} style={{ color: colors.text }} />
+      </View>
+      {error ? <Text className="mt-1 text-xs text-rose-400">{error}</Text> : null}
     </View>
   );
 }
