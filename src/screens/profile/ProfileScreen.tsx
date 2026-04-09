@@ -1,21 +1,32 @@
 import { Ionicons } from "@expo/vector-icons";
 import { AnimatePresence, MotiView } from "moti";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 
 import { BackgroundPatterns } from "@/components/common/BackgroundPatterns";
 import { SegmentControl } from "@/components/common/SegmentControl";
+import { useAuth } from "@/store/auth/AuthProvider";
 import { useAppTheme } from "@/theme/ThemeProvider";
 
 type ProfileScreenProps = { onToggleTheme: () => void; onLogout: () => void };
 
 export function ProfileScreen({ onToggleTheme, onLogout }: ProfileScreenProps) {
   const { colors, isDark } = useAppTheme();
+  const { user } = useAuth();
   const [mode, setMode] = useState<"Preview" | "Edit">("Preview");
   const [profile, setProfile] = useState({
-    name: "Jordan Riley",
-    email: "j.riley@gmail.com",
+    name: user?.fullName || "User",
+    email: user?.email || "",
   });
+
+  useEffect(() => {
+    if (user) {
+      setProfile({
+        name: user.fullName,
+        email: user.email,
+      });
+    }
+  }, [user]);
 
   return (
     <View className="flex-1" style={{ backgroundColor: colors.background }}>
@@ -58,9 +69,12 @@ export function ProfileScreen({ onToggleTheme, onLogout }: ProfileScreenProps) {
           <View className="h-28 w-28 items-center justify-center rounded-full border-4 border-white/5 bg-white/10 shadow-xl">
             <Text className="text-4xl font-black text-white">
               {profile.name
-                .split(" ")
-                .map((n) => n[0])
-                .join("")}
+                ? profile.name
+                    .split(" ")
+                    .map((n) => n[0])
+                    .join("")
+                    .toUpperCase()
+                : "U"}
             </Text>
           </View>
           <Text

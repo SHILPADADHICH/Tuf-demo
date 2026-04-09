@@ -8,11 +8,12 @@ import { useEffect, useMemo, useState } from "react";
 import { MainTabs } from "@/navigation/MainTabs";
 import { AuthScreen } from "@/screens/auth/AuthScreen";
 import { SplashScreen } from "@/screens/splash/SplashScreen";
+import { useAuth } from "@/store/auth/AuthProvider";
 import { useAppTheme } from "@/theme/ThemeProvider";
 
 export function RootNavigator() {
   const [showSplash, setShowSplash] = useState(true);
-  const [isAuthed, setAuthed] = useState(false);
+  const { user, isLoading, signOut } = useAuth();
   const { colors, isDark, toggleTheme } = useAppTheme();
 
   useEffect(() => {
@@ -36,18 +37,16 @@ export function RootNavigator() {
     [colors, isDark],
   );
 
-  const handleLogout = () => setAuthed(false);
-
-  if (showSplash) {
+  if (showSplash || isLoading) {
     return <SplashScreen />;
   }
 
   return (
     <NavigationContainer theme={navTheme}>
-      {isAuthed ? (
-        <MainTabs onToggleTheme={toggleTheme} onLogout={handleLogout} />
+      {user ? (
+        <MainTabs onToggleTheme={toggleTheme} onLogout={signOut} />
       ) : (
-        <AuthScreen onContinue={() => setAuthed(true)} />
+        <AuthScreen />
       )}
     </NavigationContainer>
   );

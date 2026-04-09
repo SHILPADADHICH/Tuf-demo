@@ -38,11 +38,19 @@ export function TransactionsScreen({
   navigation,
 }: TransactionsScreenProps) {
   const { colors, isDark } = useAppTheme();
-  const { loading, categories, transactions, addCategory, addTransaction } =
-    useFinance();
+  const {
+    loading,
+    categories,
+    transactions,
+    addCategory,
+    addTransaction,
+    updateTransaction,
+    deleteTransaction,
+  } = useFinance();
   const [filter, setFilter] = useState<FilterType>("all");
   const [errors, setErrors] = useState<FieldErrors>({});
   const [showAdd, setShowAdd] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [showCalendar, setShowCalendar] = useState(false);
   const [form, setForm] = useState<TransactionInput>({
     type: "expense",
@@ -51,6 +59,38 @@ export function TransactionsScreen({
     date: today(),
     note: "",
   });
+
+  const onEdit = (t: any) => {
+    setForm({
+      type: t.type,
+      amount: t.amount.toString(),
+      categoryId: t.categoryId,
+      date: t.date,
+      note: t.note || "",
+    });
+    setEditingId(t.id);
+    setShowAdd(true);
+  };
+
+  const onCancel = () => {
+    setEditingId(null);
+    setShowAdd(false);
+    setForm({
+      type: "expense",
+      amount: "",
+      categoryId: "food",
+      date: today(),
+      note: "",
+    });
+    setErrors({});
+  };
+
+  const onDelete = () => {
+    if (editingId) {
+      deleteTransaction(editingId);
+      onCancel();
+    }
+  };
 
   useEffect(() => {
     if (route?.params?.showAdd) {
@@ -78,16 +118,24 @@ export function TransactionsScreen({
       return;
     }
 
-    addTransaction({
-      amount,
-      categoryId: form.categoryId,
-      date: form.date,
-      note: form.note.trim(),
-      type: form.type,
-    });
-    setErrors({});
-    setForm((prev) => ({ ...prev, amount: "", note: "" }));
-    setShowAdd(false);
+    if (editingId) {
+      updateTransaction(editingId, {
+        amount,
+        categoryId: form.categoryId,
+        date: form.date,
+        note: form.note.trim(),
+        type: form.type,
+      });
+    } else {
+      addTransaction({
+        amount,
+        categoryId: form.categoryId,
+        date: form.date,
+        note: form.note.trim(),
+        type: form.type,
+      });
+    }
+    onCancel();
   };
 
   return (
@@ -113,7 +161,7 @@ export function TransactionsScreen({
               Activity
             </Text>
             <Pressable
-              onPress={() => setShowAdd(!showAdd)}
+              onPress={() => (showAdd ? onCancel() : setShowAdd(true))}
               className="h-12 w-12 items-center justify-center rounded-2xl border"
               style={{
                 borderColor: showAdd ? colors.primary : colors.border,
@@ -151,7 +199,7 @@ export function TransactionsScreen({
                     className="text-xl font-bold mb-6"
                     style={{ color: colors.text }}
                   >
-                    New Transaction
+                    {editingId ? "Edit Transaction" : "New Transaction"}
                   </Text>
 
                   <View className="flex-row rounded-2xl bg-white/5 p-1 mb-6">
@@ -375,9 +423,23 @@ export function TransactionsScreen({
                     style={{ backgroundColor: colors.primary }}
                   >
                     <Text className="text-base font-black text-black uppercase tracking-widest">
-                      Complete Transaction
+                      {editingId ? "Save Changes" : "Complete Transaction"}
                     </Text>
                   </Pressable>
+
+                  {editingId && (
+                    <Pressable
+                      onPress={onDelete}
+                      className="mt-4 h-14 items-center justify-center rounded-2xl border border-rose-500/20 bg-rose-500/5"
+                    >
+                      <Text
+                        className="text-xs font-black uppercase tracking-[4px]"
+                        style={{ color: colors.danger }}
+                      >
+                        Delete Transaction
+                      </Text>
+                    </Pressable>
+                  )}
                 </View>
               </MotiView>
             )}
@@ -438,53 +500,63 @@ export function TransactionsScreen({
               const category = categoryById(categories, item.categoryId);
               const income = item.type === "income";
               return (
-                <MotiView
-                  key={item.id}
-                  from={{ opacity: 0, translateY: 10 }}
-                  animate={{ opacity: 1, translateY: 0 }}
-                  transition={{ type: "timing", delay: idx * 50 }}
-                  className="mb-4 flex-row items-center justify-between rounded-[28px] border p-5"
-                  style={{
-                    borderColor: colors.border,
-                    backgroundColor: isDark ? "#121212" : "#FFFFFF",
-                  }}
-                >
-                  <View className="flex-row items-center gap-4">
-                    <View
-                      className="h-12 w-12 items-center justify-center rounded-2xl"
-                      style={{
-                        backgroundColor: isDark ? "#1C1C1E" : "#F1F5F9",
-                      }}
-                    >
-                      <Ionicons
-                        name={(category?.icon as any) || "receipt-outline"}
-                        size={20}
-                        color={isDark ? colors.primary : "#000"}
-                      />
-                    </View>
-                    <View>
-                      <Text
-                        className="text-base font-bold uppercase tracking-tight"
-                        style={{ color: colors.text }}
-                      >
-                        {category?.name || "General"}
-                      </Text>
-                      <Text
-                        className="text-xs font-medium"
-                        style={{ color: colors.textMuted }}
-                      >
-                        {item.date}
-                      </Text>
-                    </View>
-                  </View>
-                  <Text
-                    className="text-lg font-black"
-                    style={{ color: income ? colors.primary : "#FF6492" }}
+                <Pressable key={item.id} onPress={() => onEdit(item)}>
+                  <MotiView
+                    from={{ opacity: 0, translateY: 10 }}
+                    animate={{ opacity: 1, translateY: 0 }}
+                    transition={{ type: "timing", delay: idx * 50 }}
+                    className="mb-4 flex-row items-center justify-between rounded-[28px] border p-5"
+                    style={{
+                      borderColor: colors.border,
+                      backgroundColor: isDark ? "#121212" : "#FFFFFF",
+                    }}
                   >
-                    {income ? "+" : "-"}
-                    {formatCurrency(item.amount)}
-                  </Text>
-                </MotiView>
+                    <View className="flex-row items-center flex-1 mr-4 gap-4">
+                      <View
+                        className="h-12 w-12 items-center justify-center rounded-2xl"
+                        style={{
+                          backgroundColor: isDark ? "#1C1C1E" : "#F1F5F9",
+                        }}
+                      >
+                        <Ionicons
+                          name={(category?.icon as any) || "receipt-outline"}
+                          size={20}
+                          color={isDark ? colors.primary : "#000"}
+                        />
+                      </View>
+                      <View className="flex-1">
+                        <Text
+                          className="text-base font-bold uppercase tracking-tight"
+                          style={{ color: colors.text }}
+                        >
+                          {category?.name || "General"}
+                        </Text>
+                        {item.note && (
+                          <Text
+                            numberOfLines={1}
+                            className="text-xs font-medium"
+                            style={{ color: colors.textMuted }}
+                          >
+                            {item.note}
+                          </Text>
+                        )}
+                        <Text
+                          className="text-[10px] font-bold uppercase opacity-40"
+                          style={{ color: colors.text }}
+                        >
+                          {item.date}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text
+                      className="text-lg font-black"
+                      style={{ color: income ? colors.primary : "#FF6492" }}
+                    >
+                      {income ? "+" : "-"}
+                      {formatCurrency(item.amount)}
+                    </Text>
+                  </MotiView>
+                </Pressable>
               );
             })
           )}

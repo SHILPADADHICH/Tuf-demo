@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { MotiView } from "moti";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import Svg, {
   Defs,
@@ -19,8 +19,43 @@ type SummaryScreenProps = { onToggleTheme: () => void };
 
 export function SummaryScreen({ onToggleTheme }: SummaryScreenProps) {
   const { colors, isDark } = useAppTheme();
-  const { monthly } = useFinance();
+  const { monthly, transactions } = useFinance();
   const [period, setPeriod] = useState<"Weekly" | "Monthly">("Weekly");
+
+  const chartData = useMemo(() => {
+    if (period === "Weekly") {
+      // Last 7 days
+      const days = ["S", "M", "T", "W", "T", "F", "S"];
+      const results = new Array(7).fill(0);
+      const today = new Date();
+
+      for (let i = 0; i < 7; i++) {
+        const d = new Date();
+        d.setDate(today.getDate() - (6 - i));
+        const dayStr = d.toISOString().slice(0, 10);
+
+        const dayTotal = transactions
+          .filter((t) => t.date === dayStr && t.type === "expense")
+          .reduce((sum, t) => sum + t.amount, 0);
+
+        results[i] = dayTotal;
+      }
+
+      const max = Math.max(...results, 100);
+      return results.map((v, i) => ({
+        value: (v / max) * 100,
+        label: days[new Date(today.getDate() - (6 - i)).getDay()],
+      }));
+    } else {
+      // Last 4 weeks (simplified)
+      const results = [30, 65, 45, 85]; // Mocking some variation for monthly if no data
+      // For real data, we could group by weeks
+      return results.map((v, i) => ({
+        value: v,
+        label: `W${i + 1}`,
+      }));
+    }
+  }, [period, transactions]);
 
   const spentPct = 65; // Mock
 
@@ -192,7 +227,7 @@ export function SummaryScreen({ onToggleTheme }: SummaryScreenProps) {
             }}
           >
             <View className="flex-row items-end justify-between h-48 px-1">
-              {[45, 80, 55, 95, 75, 60, 90].map((h, i) => (
+              {chartData.map((item, i) => (
                 <View key={i} className="items-center">
                   <View
                     className="w-4 rounded-full overflow-hidden"
@@ -206,23 +241,26 @@ export function SummaryScreen({ onToggleTheme }: SummaryScreenProps) {
                   >
                     <LinearGradient
                       colors={
-                        i === 4
+                        i === chartData.length - 1
                           ? [colors.primary, colors.secondary]
                           : isDark
                             ? ["#1E293B", "#0F172A"]
                             : ["#E2E8F0", "#CBD5E1"]
                       }
                       className="w-4 rounded-full"
-                      style={{ height: `${h}%` }}
+                      style={{ height: `${Math.max(item.value, 5)}%` }}
                     />
                   </View>
                   <Text
                     className="mt-3 text-[10px] font-bold uppercase"
                     style={{
-                      color: i === 4 ? colors.primary : colors.textMuted,
+                      color:
+                        i === chartData.length - 1
+                          ? colors.primary
+                          : colors.textMuted,
                     }}
                   >
-                    {["M", "T", "W", "T", "F", "S", "S"][i]}
+                    {item.label}
                   </Text>
                 </View>
               ))}

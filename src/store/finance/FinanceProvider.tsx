@@ -1,4 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   createContext,
   useContext,
@@ -6,10 +6,14 @@ import {
   useMemo,
   useState,
   type PropsWithChildren,
-} from 'react';
+} from "react";
 
-import { CUSTOM_COLORS, PRESET_CATEGORIES, STORAGE_KEY } from '@/store/finance/constants';
-import type { Category, Transaction, TransactionType } from '@/types/finance';
+import {
+  CUSTOM_COLORS,
+  PRESET_CATEGORIES,
+  STORAGE_KEY,
+} from "@/store/finance/constants";
+import type { Category, Transaction, TransactionType } from "@/types/finance";
 
 type Summary = {
   income: number;
@@ -24,7 +28,9 @@ type FinanceContextType = {
   monthly: Summary;
   total: Summary;
   addCategory: (name: string) => string | null;
-  addTransaction: (payload: Omit<Transaction, 'id' | 'createdAt'>) => void;
+  addTransaction: (payload: Omit<Transaction, "id" | "createdAt">) => void;
+  updateTransaction: (id: string, payload: Partial<Transaction>) => void;
+  deleteTransaction: (id: string) => void;
 };
 
 type PersistedData = {
@@ -35,8 +41,12 @@ type PersistedData = {
 const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
 
 function summaryFromTransactions(items: Transaction[]) {
-  const income = items.filter((item) => item.type === 'income').reduce((sum, item) => sum + item.amount, 0);
-  const expense = items.filter((item) => item.type === 'expense').reduce((sum, item) => sum + item.amount, 0);
+  const income = items
+    .filter((item) => item.type === "income")
+    .reduce((sum, item) => sum + item.amount, 0);
+  const expense = items
+    .filter((item) => item.type === "expense")
+    .reduce((sum, item) => sum + item.amount, 0);
   return { income, expense, balance: income - expense };
 }
 
@@ -73,24 +83,30 @@ export function FinanceProvider({ children }: PropsWithChildren) {
     const now = new Date();
     const monthItems = transactions.filter((item) => {
       const d = new Date(item.date);
-      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+      return (
+        d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+      );
     });
 
     return summaryFromTransactions(monthItems);
   }, [transactions]);
 
-  const total = useMemo(() => summaryFromTransactions(transactions), [transactions]);
+  const total = useMemo(
+    () => summaryFromTransactions(transactions),
+    [transactions],
+  );
 
   const addCategory = (name: string) => {
     const trimmed = name.trim();
     if (!trimmed) return null;
 
     const id = `custom-${Date.now()}`;
-    const color = CUSTOM_COLORS[Math.floor(Math.random() * CUSTOM_COLORS.length)];
+    const color =
+      CUSTOM_COLORS[Math.floor(Math.random() * CUSTOM_COLORS.length)];
     const category: Category = {
       id,
       name: trimmed,
-      icon: 'pricetag-outline',
+      icon: "pricetag-outline",
       color,
       isCustom: true,
     };
@@ -99,7 +115,7 @@ export function FinanceProvider({ children }: PropsWithChildren) {
     return id;
   };
 
-  const addTransaction = (payload: Omit<Transaction, 'id' | 'createdAt'>) => {
+  const addTransaction = (payload: Omit<Transaction, "id" | "createdAt">) => {
     const transaction: Transaction = {
       ...payload,
       id: `tx-${Date.now()}`,
@@ -107,6 +123,16 @@ export function FinanceProvider({ children }: PropsWithChildren) {
     };
 
     setTransactions((prev) => [transaction, ...prev]);
+  };
+
+  const updateTransaction = (id: string, payload: Partial<Transaction>) => {
+    setTransactions((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, ...payload } : t)),
+    );
+  };
+
+  const deleteTransaction = (id: string) => {
+    setTransactions((prev) => prev.filter((t) => t.id !== id));
   };
 
   const value: FinanceContextType = {
@@ -117,25 +143,37 @@ export function FinanceProvider({ children }: PropsWithChildren) {
     total,
     addCategory,
     addTransaction,
+    updateTransaction,
+    deleteTransaction,
   };
 
-  return <FinanceContext.Provider value={value}>{children}</FinanceContext.Provider>;
+  return (
+    <FinanceContext.Provider value={value}>{children}</FinanceContext.Provider>
+  );
 }
 
 export function useFinance() {
   const context = useContext(FinanceContext);
-  if (!context) throw new Error('useFinance must be used inside FinanceProvider');
+  if (!context)
+    throw new Error("useFinance must be used inside FinanceProvider");
   return context;
 }
 
 export function formatCurrency(value: number) {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value);
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(value);
 }
 
 export function categoryById(categories: Category[], id: string) {
   return categories.find((category) => category.id === id);
 }
 
-export function filterByType(transactions: Transaction[], type: TransactionType) {
+export function filterByType(
+  transactions: Transaction[],
+  type: TransactionType,
+) {
   return transactions.filter((transaction) => transaction.type === type);
 }
